@@ -23,3 +23,13 @@ livekit-server --dev
 ```
 
 4. Open http://localhost:3000 in your browser.
+
+## Sample Images
+
+<div align="center">
+  <img src="./assets/TM-1.png" alt="Screenshot 1" width="600"/>
+  <br/>
+  <br/>
+  <br/>
+  <img src="./assets/TM-2.png" alt="Screenshot 2" width="600"/>
+</div>
