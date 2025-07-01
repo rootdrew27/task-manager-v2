@@ -1,4 +1,0 @@
-project-includes = ["**/*.py"]
-project-excludes = ["**/*venv/**/*"]
-
-search-path = ["agent/"]
