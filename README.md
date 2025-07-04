@@ -27,7 +27,7 @@ livekit-server --dev
 
 4. Start the Next.js app. Navigate to webapp/ and run `npm run dev`.
 
-5. Enter http://localhost:3000 in your browser.
+5. Enter http://localhost:3000 in your browser. 
 
 ## Sample Images
 

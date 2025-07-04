@@ -94,12 +94,15 @@ No specific test framework is configured. Check for test files in the codebase b
 - Frontend uses npm as package manager
 - LiveKit server must be running before starting the agent
 
-## Proposed Plan
+## Authentication
+- JWT Strategy
+- Providers include: Google, Twitter
 
-1. If a user attempts to activate an agent, a model will appear and they will be prompted to enter their API keys (for Deepgram, OpenAI, and Cartesia): The Cartesia key will be optional.
+## API Key Validation
+1. If a user attempts to activate an agent, a modal will appear and they will be prompted to enter their API keys (for Deepgram, OpenAI, and Cartesia): The Cartesia key will be optional.
 
-2. After each api key entry, and validation, users will be able to select a model from a dropdown. The dropdowns will be populated with the results from the respective endpoints (e.g. https://api.openai.com/v1/models for openai).
+2. After each api key entry, and validation, users will be able to select a model from a dropdown. The dropdowns will be populated with predetermined options.
 
-3. After selection is complete, their agent will be activated.
+3. After validation is complete, their agent will be activated.
 
 4. If they sign in, their api keys, and model preferences will be retained.
