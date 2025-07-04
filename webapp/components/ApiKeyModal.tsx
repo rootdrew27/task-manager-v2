@@ -1,17 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
 } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useState } from "react";
 
 interface ApiKeyModalProps {
   open: boolean;
@@ -38,7 +38,7 @@ export function ApiKeyModal({ open, onOpenChange, onApiKeysSet }: ApiKeyModalPro
     }
 
     setIsValidating(true);
-    
+
     // Store API keys in localStorage
     const apiKeys: ApiKeys = {
       openaiKey: openaiKey.trim(),
@@ -47,7 +47,7 @@ export function ApiKeyModal({ open, onOpenChange, onApiKeysSet }: ApiKeyModalPro
     };
 
     localStorage.setItem("apiKeys", JSON.stringify(apiKeys));
-    
+
     setIsValidating(false);
     onApiKeysSet(apiKeys);
     onOpenChange(false);
@@ -59,10 +59,11 @@ export function ApiKeyModal({ open, onOpenChange, onApiKeysSet }: ApiKeyModalPro
         <DialogHeader>
           <DialogTitle>API Key Setup</DialogTitle>
           <DialogDescription>
-            Please enter your API keys to activate the voice assistant. Your keys will be stored locally in your browser.
+            Please enter your API keys to activate the voice assistant. Your keys will be stored
+            locally in your browser.
           </DialogDescription>
         </DialogHeader>
-        
+
         <div className="grid gap-4 py-4">
           <div className="grid gap-2">
             <Label htmlFor="openai-key">OpenAI API Key *</Label>
@@ -74,7 +75,7 @@ export function ApiKeyModal({ open, onOpenChange, onApiKeysSet }: ApiKeyModalPro
               onChange={(e) => setOpenaiKey(e.target.value)}
             />
           </div>
-          
+
           <div className="grid gap-2">
             <Label htmlFor="deepgram-key">Deepgram API Key *</Label>
             <Input
@@ -85,7 +86,7 @@ export function ApiKeyModal({ open, onOpenChange, onApiKeysSet }: ApiKeyModalPro
               onChange={(e) => setDeepgramKey(e.target.value)}
             />
           </div>
-          
+
           <div className="grid gap-2">
             <Label htmlFor="cartesia-key">Cartesia API Key (Optional)</Label>
             <Input
@@ -97,10 +98,10 @@ export function ApiKeyModal({ open, onOpenChange, onApiKeysSet }: ApiKeyModalPro
             />
           </div>
         </div>
-        
+
         <DialogFooter>
-          <Button 
-            onClick={handleSave} 
+          <Button
+            onClick={handleSave}
             disabled={!openaiKey.trim() || !deepgramKey.trim() || isValidating}
           >
             {isValidating ? "Saving..." : "Save API Keys"}

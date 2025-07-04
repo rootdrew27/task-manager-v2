@@ -152,8 +152,6 @@ h3 {
   will-change: transform, opacity;
 }
 
-
-
 @layer base {
   :root {
     --background: 0 0% 100%;
@@ -209,8 +207,6 @@ h3 {
     --chart-5: 340 75% 55%;
   }
 }
-
-
 
 @layer base {
   * {

@@ -4,15 +4,9 @@ import type { ConnectionDetails } from "@/app/api/connection-details/route";
 import { Settings } from "@/components/Settings";
 import { build_task_obj } from "@/lib/task";
 import { RoomContext } from "@livekit/components-react";
-import {
-  Participant,
-  Room,
-  RoomEvent,
-  TrackPublication,
-  TranscriptionSegment,
-} from "livekit-client";
+import { Room, RoomEvent } from "livekit-client";
 import { useCallback, useEffect, useState } from "react";
-import { GiConsoleController } from "react-icons/gi";
+// import { GiConsoleController } from "react-icons/gi";
 import { SimpleVoiceAssistant } from "./simple-voice-assistant";
 import { TaskManager } from "./task-manager";
 
@@ -45,19 +39,19 @@ export const AgentUI = ({ initTasks }: { initTasks: TaskInfo[] }) => {
       if (metadata) {
         console.log(metadata);
         const { update_type, data, updated_at } = JSON.parse(metadata);
-        // console.log(`Updated metadata with timestamp: ${updated_at}`);
+        console.log(`Updated metadata with timestamp: ${updated_at}`);
 
         if (update_type === "CREATE") {
           console.log("Creating a task");
           console.log(`Data: ${JSON.stringify(data)}`);
           setTasks((prev) => [...prev, build_task_obj(data)]);
         } else if (update_type === "EDIT") {
-          let { name, new_name, is_complete, new_deadline, new_description } = data;
+          const { name, new_name, is_complete, new_deadline, new_description } = data;
 
           console.log("Editing tasks.");
           console.log(`Current tasks: ${JSON.stringify(tasks)}`);
           setTasks((tasks) =>
-            tasks.map((task, i) => {
+            tasks.map((task) => {
               if (task.name.trim().toLowerCase() === name.trim().toLowerCase()) {
                 const newTaskName = new_name ?? task.name;
                 const newIsComplete =
@@ -101,7 +95,7 @@ export const AgentUI = ({ initTasks }: { initTasks: TaskInfo[] }) => {
       room.off(RoomEvent.MediaDevicesError, onDeviceFailure);
       room.unregisterTextStreamHandler("task-assistant--text");
     };
-  }, [room]);
+  }, [room, tasks]);
 
   return (
     <div className="flex flex-col h-full w-full items-center lg:flex-row lg:space-y-0 lg:space-x-4 lg:items-stretch">

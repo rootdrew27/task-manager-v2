@@ -4,10 +4,9 @@ import { AgentChatMessages } from "@/components/AgentChatMessages";
 import { NoAgentNotification } from "@/components/NoAgentNotification";
 import { RoomAudioRenderer, useVoiceAssistant } from "@livekit/components-react";
 import { AnimatePresence, motion } from "framer-motion";
+import { AgentButton } from "./agent-button";
 import { AgentVisualizer } from "./agent-visualizer";
 import { ControlBar } from "./control-bar";
-import { AgentButton } from "./agent-button";
-
 
 function SimpleVoiceAssistant(props: { onConnectButtonClicked: () => void }) {
   const { state: agentState } = useVoiceAssistant();
@@ -24,7 +23,7 @@ function SimpleVoiceAssistant(props: { onConnectButtonClicked: () => void }) {
             transition={{ duration: 0.3, ease: [0.09, 0.5, 0.245, 1.055] }}
             className="grid items-center justify-center h-full"
           >
-            <AgentButton onConnectButtonClicked={props.onConnectButtonClicked}/>
+            <AgentButton onConnectButtonClicked={props.onConnectButtonClicked} />
           </motion.div>
         ) : (
           <motion.div

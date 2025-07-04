@@ -57,6 +57,7 @@ const AccordionTrigger = React.forwardRef<HTMLButtonElement, AccordionTriggerPro
     </Accordion.Header>
   )
 );
+AccordionTrigger.displayName = "AccordionTrigger";
 
 const AccordionContent = React.forwardRef<HTMLDivElement, AccordionContentProps>(
   ({ children, className, ...props }, forwardedRef) => (
@@ -69,5 +70,6 @@ const AccordionContent = React.forwardRef<HTMLDivElement, AccordionContentProps>
     </Accordion.Content>
   )
 );
+AccordionContent.displayName = "AccordionContent";
 
 export { Task };
