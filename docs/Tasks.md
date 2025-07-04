@@ -6,3 +6,4 @@
 
 ## UI
 - The Agent Chat and the Tasks should be scrollable
+- Add simple buttons for adding and deleting. Make task names, deadline, etc. editable.

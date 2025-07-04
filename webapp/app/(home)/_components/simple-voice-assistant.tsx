@@ -6,6 +6,8 @@ import { RoomAudioRenderer, useVoiceAssistant } from "@livekit/components-react"
 import { AnimatePresence, motion } from "framer-motion";
 import { AgentVisualizer } from "./agent-visualizer";
 import { ControlBar } from "./control-bar";
+import { AgentButton } from "./agent-button";
+
 
 function SimpleVoiceAssistant(props: { onConnectButtonClicked: () => void }) {
   const { state: agentState } = useVoiceAssistant();
@@ -22,17 +24,7 @@ function SimpleVoiceAssistant(props: { onConnectButtonClicked: () => void }) {
             transition={{ duration: 0.3, ease: [0.09, 0.5, 0.245, 1.055] }}
             className="grid items-center justify-center h-full"
           >
-            <motion.button
-              initial={{ opacity: 0, scale: 0 }}
-              animate={{ opacity: 1, scale: 1 }}
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.8 }}
-              transition={{ duration: 0.4, delay: 0 }}
-              className="text-center uppercase bg-white text-black rounded-full h-[100px] w-[100px]"
-              onClick={() => props.onConnectButtonClicked()}
-            >
-              Activate
-            </motion.button>
+            <AgentButton onConnectButtonClicked={props.onConnectButtonClicked}/>
           </motion.div>
         ) : (
           <motion.div

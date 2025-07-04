@@ -2,9 +2,8 @@ from typing import Dict
 from typing import Any, TypedDict, Optional
 from datetime import date
 import logging
-from pydantic import FutureDate
 from pymongo import AsyncMongoClient
-from custom_types import TaskName, TaskDescription
+from custom_types import TaskName, TaskDescription, TaskError, TaskAlreadyExistsError, TaskNotFoundError
 
 pymongo_logger = logging.getLogger("pymongo")
 pymongo_logger.setLevel(logging.INFO)
@@ -48,7 +47,7 @@ async def create_task(
         filter_ = {"name": {"$regex": f"^{name}$", "$options": "i"}}
         if await tasks_collection.find_one(filter_):
             logging.info(f"Task already exists: {name}")
-            return "ERROR 1"
+            return TaskAlreadyExistsError()
         task: Task = {
             "name": name,
             "is_complete": is_complete if (is_complete is not None) else (False),
@@ -58,7 +57,7 @@ async def create_task(
         return await tasks_collection.insert_one(task)
     except Exception as ex:
         logging.error(f"Error in db.create_task: {ex}")
-        return "ERROR 2"
+        return TaskError()
 
 
 async def edit_task(
@@ -69,7 +68,7 @@ async def edit_task(
     try:
 
         if not updated_fields:
-            return "ERROR 1"
+            return ValueError()
 
         filter_ = {"name": {"$regex": f"^{name}$", "$options": "i"}}
         result = await tasks_collection.update_one(filter_, {"$set": updated_fields})
@@ -78,7 +77,7 @@ async def edit_task(
 
     except Exception as ex:
         logging.error(f"Error in db.edit_task: {ex}")
-        return "ERROR 2"
+        return TaskError()
 
 async def delete_task(name: TaskName):
     """Delete a task by name (case-insensitive)."""
@@ -86,8 +85,10 @@ async def delete_task(name: TaskName):
 
         filter_ = {"name": {"$regex": f"^{name}$", "$options": "i"}}
         result = await tasks_collection.delete_one(filter_)
+        if result.deleted_count == 0:
+            return TaskNotFoundError()
         return result.deleted_count
     
     except Exception as ex:
         logging.error(f"Error in db.delete_task: {ex}")
-        return "ERROR 1"
+        return TaskError()

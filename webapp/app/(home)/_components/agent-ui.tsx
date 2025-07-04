@@ -109,7 +109,7 @@ export const AgentUI = ({ initTasks }: { initTasks: TaskInfo[] }) => {
         <div className="lk-room-container flex flex-1 items-center justify-center mx-auto">
           <SimpleVoiceAssistant onConnectButtonClicked={onConnectButtonClicked} />
         </div>
-        <div className="flex-1 flex flex-col justify-center items-center p-2">
+        <div className="flex-1 flex flex-col justify-center p-2">
           <TaskManager tasks={tasks} />
         </div>
         <div className="flex-1 flex flex-col justify-center items-center p-2">

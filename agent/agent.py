@@ -1,17 +1,28 @@
 from typing import Union
-from livekit.agents.llm.llm import ChatChunk
+from livekit.agents.llm.llm import ChatChunk, ChoiceDelta
 from livekit.agents.llm.chat_context import FunctionCallOutput
 from typing import AsyncGenerator
+
+
+from contextlib import asynccontextmanager
+
 from livekit.agents.job import get_job_context
 import time
 import json
 from typing import Any, Optional
+import logging
 
 from dotenv import load_dotenv
 
 from pydantic import FutureDate
 
-from custom_types import TaskName, TaskDescription
+from custom_types import (
+    TaskName,
+    TaskDescription,
+    TaskError,
+    TaskNotFoundError,
+    TaskAlreadyExistsError,
+)
 import db as mongodb
 
 from livekit import api
@@ -38,7 +49,9 @@ from livekit.plugins import (
 
 from prompts import TASK_ASSISTANT_INSTRUCTIONS_TEMPLATE
 
-load_dotenv(".env.local", verbose=True)
+load_dotenv(".env", verbose=True)
+
+logger = logging.getLogger(__name__)
 
 TOOL_NAMES = ["create_task", "edit_task", "delete_task", "invalid_request"]
 
@@ -54,54 +67,63 @@ task_assistant_instructions = TASK_ASSISTANT_INSTRUCTIONS_TEMPLATE.format(
 )
 
 
-async def stream_taskassistant_text(
-    llm_response: AsyncGenerator[ChatChunk | str, None],
-)-> str:
-    room = get_job_context().room
-    print(f"Remotes: {room.remote_participants}")
-    print(f"Local: {room.local_participant}")
-    writer = await room.local_participant.stream_text(
-        topic="task-assistant--text",
-    )
-
-    text = ""
-    async for chunk in llm_response:
-        print(f"Chunk: {chunk}")
-        if isinstance(chunk, ChatChunk):
-            if chunk.delta is not None and chunk.delta.role == "assistant":
-                text_chunk = chunk.delta.content
-                if text_chunk:
-                    await writer.write(text_chunk)
-                    text += text_chunk
-    await writer.aclose()
-    return text
-
-
 class TaskAssistant(Agent):
     def __init__(self, instructions: str, tools, **kwargs) -> None:
         super().__init__(instructions=instructions, tools=tools, **kwargs)
 
     # TODO: Verify this works
-    async def llm_node( # pyrefly: ignore
+    async def llm_node(  # pyrefly: ignore
         self,
         chat_ctx: llm.ChatContext,
         tools: list[FunctionTool | RawFunctionTool],
         model_settings: ModelSettings,
-    )-> Union[AsyncGenerator[ChatChunk | str, None], str]: 
-        if type(chat_ctx.items[-1]) is not FunctionCallOutput:
-            task_names = ", ".join(
-                [task["name"] for task in (await mongodb.get_tasks())]
-            )
-            await self.update_instructions(
-                task_assistant_instructions
-                + f"\n\nFor reference, the current task names are: {task_names}"
-            )
-            print("Calling default llm_node")
-            return Agent.default.llm_node(self, chat_ctx, tools, model_settings)
-        else:
-            print("Streaming texts to topic")
-            chat_gen = Agent.default.llm_node(self, chat_ctx, tools, model_settings)
-            return await stream_taskassistant_text(chat_gen)
+    ):
+        if isinstance(chat_ctx.items[-1], FunctionCallOutput): # Function was called previously. Return text to the user.
+            async for chunk in self._stream_with_text_output(
+                chat_ctx, tools, model_settings
+            ):
+                yield chunk
+        else: # return
+            await self._update_task_context()
+            async for chunk in Agent.default.llm_node(
+                self, chat_ctx, tools, model_settings
+            ):
+                yield chunk
+
+    async def _stream_with_text_output(self, chat_ctx, tools, model_settings):
+        """Stream LLM output while also writing to text stream"""
+        try:
+            async with self.text_stream_writer() as writer:
+                async for chunk in Agent.default.llm_node(
+                    self, chat_ctx, tools, model_settings
+                ):
+                    if isinstance(chunk, ChatChunk):
+                        content = getattr(chunk.delta, "content", None) if hasattr(chunk, "delta") else None
+                        if isinstance(content, str):
+                            await writer.write(content)
+                    yield chunk
+        except Exception as ex:
+            logger.error(f"Issue streaming text to topic. Error: {ex}.")
+
+    @asynccontextmanager
+    async def text_stream_writer(self):
+        """Context manager for text stream writer"""
+        room = get_job_context().room
+        writer = await room.local_participant.stream_text(topic="task-assistant--text")
+        try:
+            yield writer
+        finally:
+            await writer.aclose()
+
+    async def _update_task_context(self):
+        """Update agent instructions with current task names."""
+        tasks = await mongodb.get_tasks()
+        task_names = ", ".join(task.get("name", "") for task in tasks)
+        instructions = (
+            task_assistant_instructions
+            + f"\n\nFor reference, the current task names are: {task_names}"
+        )
+        await self.update_instructions(instructions)
 
 
 async def entrypoint(ctx: agents.JobContext):
@@ -111,7 +133,6 @@ async def entrypoint(ctx: agents.JobContext):
     room_service = lkapi.room
 
     async def update_room_metadata(update_type: str, ctx: RunContext, **kwargs):
-        print("Updating Metadata!")
         try:
             assert ctx.session._room_io is not None, (
                 "Session does not have _room_io set!"
@@ -128,7 +149,7 @@ async def entrypoint(ctx: agents.JobContext):
             )
             await room_service.update_room_metadata(update=update)
         except TypeError as te:
-            print(te)
+            logger.error(te)
 
     session = AgentSession(
         stt=deepgram.STT(model="nova-3", language="multi"),
@@ -151,15 +172,15 @@ async def entrypoint(ctx: agents.JobContext):
             deadline (FutureDate | None, optional): The deadline (i.e. due date) of the task. Defaults to None.
             description (TaskDescription | None, optional): An additional description of the task. Defaults to None.
         """
-        print(f"The 'create_task' tool was called with name = ({name}).")
+        logger.info(f"The 'create_task' tool was called with name = ({name}).")
         try:
             result = await mongodb.create_task(name, is_complete, deadline, description)
 
             # TODO: Create another logger for agent messages
-            if result == "ERROR 1":
+            if isinstance(result, TaskAlreadyExistsError):
                 return f"Failed to create new a task with the name '{name.strip().lower()}'. A task with that name already exists."
 
-            if result == "ERROR 2":
+            if isinstance(result, TaskError):
                 return f"Failed to create new a task with the name '{name.strip().lower()}'. An unknown error occurred."
 
             await update_room_metadata(
@@ -194,6 +215,7 @@ async def entrypoint(ctx: agents.JobContext):
             new_deadline (FutureDate | None, optional): The new deadline of the task bein edited. Defaults to None.
             new_description (TaskDescription | None, optional): The new description of the task being edited. Defaults to None.
         """
+        logger.info(f"The edit_task tool was called with name = ({name})")
         try:
             updated_fields: dict[str, Any] = {}
             if new_name is not None:
@@ -207,14 +229,14 @@ async def entrypoint(ctx: agents.JobContext):
 
             result = await mongodb.edit_task(name, updated_fields)
 
-            if result == "ERROR 1":
+            if isinstance(result, ValueError):
                 return f"The task with the name '{name}' could not be edited. No fields were specified to be updated."
 
-            if result == "ERROR 2":
+            if isinstance(result, TaskError):
                 return f"The task with the name '{name}' could not be edited. An unknown error occured."
 
-            if result == 0:
-                return f"The task with the name '{name}' was not edited. The field(s) {"'" + "', '".join([k for k in updated_fields.keys()]) + "'"} did not need to be updated."
+            if isinstance(result, TaskNotFoundError):
+                return f"The task with the name '{name}' was not edited. Either the task could not be found, or the field(s) {"'" + "', '".join([k for k in updated_fields.keys()]) + "'"} did not need to be updated."
 
             await update_room_metadata(
                 "EDIT",
@@ -228,7 +250,7 @@ async def entrypoint(ctx: agents.JobContext):
 
             return f"Edited the task: '{name}'."
         except Exception as ex:
-            print("Error while editing task")
+            logger.error("Error while editing task")
             raise ex
 
     @function_tool()
@@ -238,27 +260,34 @@ async def entrypoint(ctx: agents.JobContext):
         Args:
             name (TaskName): The name of the task to delete.
         """
+        logger.info(f"The delete_task tool was called with name = ({name})")
         try:
             result = await mongodb.delete_task(name)
 
-            if result == 0:
+            if isinstance(result, TaskNotFoundError):
                 return f"Failed to delete a task with the name '{name}'. No matching task was found."
+
+            if isinstance(result, TaskError):
+                return f"Failed to delete a task with the name '{name}'. An unknown error occurred."
 
             await update_room_metadata("DELETE", context, name=name)
 
             return f"Deleted the task: '{name}'."
         except Exception as ex:
-            print("Error while deleting task")
+            logger.error("Error while deleting task")
             raise ex
 
     @function_tool()
     async def invalid_request(context: RunContext):
         """Notifies the user that they have made an invalid request. Use this tool when a user's request does not pertain to managing their tasks."""
+        logger.info("The invalid_request tool was called.")
         return "Invalid Request."
 
     tools = [create_task, edit_task, delete_task, invalid_request]
 
-    init_task_names = ", ".join([task["name"] for task in (await mongodb.get_tasks())])
+    init_task_names = ", ".join(
+        [task.get("name", "") for task in (await mongodb.get_tasks())]
+    )
 
     instructions = (
         task_assistant_instructions
