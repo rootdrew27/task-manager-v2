@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Union
 from livekit.agents.llm.llm import ChatChunk, ChoiceDelta
 from livekit.agents.llm.chat_context import FunctionCallOutput
@@ -63,7 +64,7 @@ TOOL_INSTRUCTIONS = (
 )
 
 task_assistant_instructions = TASK_ASSISTANT_INSTRUCTIONS_TEMPLATE.format(
-    tools=", ".join(TOOL_NAMES), tool_instructions=TOOL_INSTRUCTIONS, final_notes=""
+    tools=", ".join(TOOL_NAMES), tool_instructions=TOOL_INSTRUCTIONS
 )
 
 
@@ -84,7 +85,7 @@ class TaskAssistant(Agent):
             ):
                 yield chunk
         else: # return
-            await self._update_task_context()
+            await self._update_instructions(base=task_assistant_instructions)
             async for chunk in Agent.default.llm_node(
                 self, chat_ctx, tools, model_settings
             ):
@@ -115,16 +116,30 @@ class TaskAssistant(Agent):
         finally:
             await writer.aclose()
 
-    async def _update_task_context(self):
+
+    async def _update_instructions(self, base: str):
+        cur = await self._update_task_context(base)
+        cur = await self._update_datetime_context(cur)
+        await self.update_instructions(cur)
+
+    async def _update_task_context(self, cur: str):
         """Update agent instructions with current task names."""
         tasks = await mongodb.get_tasks()
         task_names = ", ".join(task.get("name", "") for task in tasks)
-        instructions = (
-            task_assistant_instructions
+        return (
+            cur
             + f"\n\nFor reference, the current task names are: {task_names}"
         )
-        await self.update_instructions(instructions)
+    
+    async def _update_datetime_context(self, cur: str):
+        """Update agent instructions with current datetime."""
+        now = datetime.now()
+        formatted_datetime = now.strftime("%A, %B %d, %Y at %I:%M %p")
+        
+        datetime_instructions = f"\n\nAdditionally, for reference, the current date and time is: {formatted_datetime}"
 
+        return cur + datetime_instructions
+    
 
 async def entrypoint(ctx: agents.JobContext):
     await ctx.connect()
@@ -153,7 +168,7 @@ async def entrypoint(ctx: agents.JobContext):
 
     session = AgentSession(
         stt=deepgram.STT(model="nova-3", language="multi"),
-        llm=openai.LLM(model="gpt-4o-mini", max_completion_tokens=1000),
+        llm=openai.LLM(model="gpt-4o-mini", max_completion_tokens=2500),
         vad=silero.VAD.load(),
     )
 
