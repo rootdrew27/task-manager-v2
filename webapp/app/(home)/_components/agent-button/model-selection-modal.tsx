@@ -61,7 +61,7 @@ export function ModelSelectionModal({
         selectedModels: {
           deepgram: selectedDeepgramModel,
           openai: selectedOpenaiModel,
-          cartesia: availableModels.cartesia ? selectedCartesiaModel : "",
+          cartesia: availableModels.cartesia ? selectedCartesiaModel : undefined,
         },
       });
 

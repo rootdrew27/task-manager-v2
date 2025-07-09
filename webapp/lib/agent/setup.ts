@@ -11,7 +11,7 @@ interface ApiKeys {
 interface SelectedModels {
   deepgram: string;
   openai: string;
-  cartesia: string;
+  cartesia?: string;
 }
 
 interface SetupData {
@@ -106,11 +106,7 @@ function validateModelSelection(selectedModels: SelectedModels): {
   if (!selectedModels.deepgram || !VALID_MODELS.deepgram.includes(selectedModels.deepgram)) {
     errors.push(`Invalid Deepgram model`);
   }
-  console.log(JSON.stringify(selectedModels));
-  if (
-    typeof selectedModels.cartesia === "string" &&
-    !VALID_MODELS.cartesia.includes(selectedModels.cartesia)
-  ) {
+  if (selectedModels.cartesia && !VALID_MODELS.cartesia.includes(selectedModels.cartesia)) {
     errors.push(`Invalid Cartesia model`);
   }
 
