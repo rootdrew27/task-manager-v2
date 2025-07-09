@@ -5,5 +5,5 @@ TASK_ASSISTANT_INSTRUCTIONS_TEMPLATE = """
     
     Here are instructions pertaining to the functions (i.e. tools) that you have access to:
 
-    {tool_instructions}
+    {tool_instructions}.
     """

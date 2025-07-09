@@ -2,22 +2,30 @@ from typing import Dict
 from typing import Any, TypedDict, Optional
 from datetime import date
 import logging
+from pydantic import FutureDate
 from pymongo import AsyncMongoClient
-from custom_types import TaskName, TaskDescription, TaskError, TaskAlreadyExistsError, TaskNotFoundError
+from custom_types import (
+    TaskName,
+    TaskDescription,
+    TaskError,
+    TaskAlreadyExistsError,
+    TaskNotFoundError,
+)
 
 pymongo_logger = logging.getLogger("pymongo")
 pymongo_logger.setLevel(logging.INFO)
 file_handler = logging.FileHandler("pymongo.log")
 file_handler.setLevel(logging.INFO)
-formatter = logging.Formatter('%(asctime)s %(levelname)s %(name)s: %(message)s')
+formatter = logging.Formatter("%(asctime)s %(levelname)s %(name)s: %(message)s")
 file_handler.setFormatter(formatter)
 pymongo_logger.addHandler(file_handler)
+
 
 class Task(TypedDict, total=False):
     _id: str
     name: str
     is_complete: bool
-    deadline: date | None
+    deadline: date | str | None
     description: str | None
 
 
@@ -39,7 +47,7 @@ async def get_tasks() -> list[Task]:
 async def create_task(
     name: TaskName,
     is_complete: Optional[bool] = None,
-    deadline: Optional[date] = None,
+    deadline: Optional[FutureDate] = None,
     description: Optional[TaskDescription] = None,
 ):
     """Add a new task if it does not already exist (case-insensitive)."""
@@ -51,7 +59,9 @@ async def create_task(
         task: Task = {
             "name": name,
             "is_complete": is_complete if (is_complete is not None) else (False),
-            "deadline": deadline,
+            "deadline": deadline.strftime("%A, %B %d, %Y at %I:%M %p")
+            if deadline
+            else None,
             "description": description,
         }
         return await tasks_collection.insert_one(task)
@@ -60,13 +70,9 @@ async def create_task(
         return TaskError()
 
 
-async def edit_task(
-    name: TaskName,
-    updated_fields: Dict[str, Any]
-):
+async def edit_task(name: TaskName, updated_fields: Dict[str, Any]):
     """Edit an existing task by name (case-insensitive)."""
     try:
-
         if not updated_fields:
             return ValueError()
 
@@ -79,16 +85,16 @@ async def edit_task(
         logging.error(f"Error in db.edit_task: {ex}")
         return TaskError()
 
+
 async def delete_task(name: TaskName):
     """Delete a task by name (case-insensitive)."""
     try:
-
         filter_ = {"name": {"$regex": f"^{name}$", "$options": "i"}}
         result = await tasks_collection.delete_one(filter_)
         if result.deleted_count == 0:
             return TaskNotFoundError()
         return result.deleted_count
-    
+
     except Exception as ex:
         logging.error(f"Error in db.delete_task: {ex}")
         return TaskError()

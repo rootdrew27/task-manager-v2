@@ -1,9 +1,6 @@
-from datetime import datetime
-from typing import Union
-from livekit.agents.llm.llm import ChatChunk, ChoiceDelta
+from datetime import date, datetime
+from livekit.agents.llm.llm import ChatChunk
 from livekit.agents.llm.chat_context import FunctionCallOutput
-from typing import AsyncGenerator
-
 
 from contextlib import asynccontextmanager
 
@@ -15,7 +12,8 @@ import logging
 
 from dotenv import load_dotenv
 
-from pydantic import FutureDate
+# from pydantic import FutureDatetime
+from custom_types import FutureDatetime
 
 from custom_types import (
     TaskName,
@@ -54,13 +52,23 @@ load_dotenv(".env", verbose=True)
 
 logger = logging.getLogger(__name__)
 
+
+class DateTimeEncoder(json.JSONEncoder):
+    """Custom JSON encoder that formats datetime objects using the specified format."""
+
+    def default(self, o):
+        if isinstance(o, (datetime, date)):
+            return o.strftime("%A, %B %d, %Y at %I:%M %p")
+        return super().default(o)
+
+
 TOOL_NAMES = ["create_task", "edit_task", "delete_task", "invalid_request"]
 
 TOOL_INSTRUCTIONS = (
     "When the user requests to create, add, or make a new task you will use the 'create_task' function. "
     "When the user requests to edit, modify, or change a task in any way, you will use the 'edit_task' function. "
-    "When the user requests to delete, remove, or clear a task you will use the 'delete_task' function."
-    "When the user requests anything unrelated to managing their tasks you will use the 'invalid_request' function."
+    "When the user requests to delete, remove, or clear a task you will use the 'delete_task' function. "
+    "When the user requests anything unrelated to managing their tasks you will use the 'invalid_request' function. "
 )
 
 task_assistant_instructions = TASK_ASSISTANT_INSTRUCTIONS_TEMPLATE.format(
@@ -79,12 +87,17 @@ class TaskAssistant(Agent):
         tools: list[FunctionTool | RawFunctionTool],
         model_settings: ModelSettings,
     ):
-        if isinstance(chat_ctx.items[-1], FunctionCallOutput): # Function was called previously. Return text to the user.
+        print(f"IN LLM NODE. Previous chat type is ({type(chat_ctx.items[-1])}).")
+        if isinstance(
+            chat_ctx.items[-1], FunctionCallOutput
+        ):  # Function was called previously. Return text to the user.
+            print("STREAMING TEXT")
             async for chunk in self._stream_with_text_output(
                 chat_ctx, tools, model_settings
             ):
                 yield chunk
-        else: # return
+        else:
+            print("NOT STREAMING TEXT")
             await self._update_instructions(base=task_assistant_instructions)
             async for chunk in Agent.default.llm_node(
                 self, chat_ctx, tools, model_settings
@@ -99,7 +112,11 @@ class TaskAssistant(Agent):
                     self, chat_ctx, tools, model_settings
                 ):
                     if isinstance(chunk, ChatChunk):
-                        content = getattr(chunk.delta, "content", None) if hasattr(chunk, "delta") else None
+                        content = (
+                            getattr(chunk.delta, "content", None)
+                            if hasattr(chunk, "delta")
+                            else None
+                        )
                         if isinstance(content, str):
                             await writer.write(content)
                     yield chunk
@@ -116,7 +133,6 @@ class TaskAssistant(Agent):
         finally:
             await writer.aclose()
 
-
     async def _update_instructions(self, base: str):
         cur = await self._update_task_context(base)
         cur = await self._update_datetime_context(cur)
@@ -128,18 +144,17 @@ class TaskAssistant(Agent):
         task_names = ", ".join(task.get("name", "") for task in tasks)
         return (
             cur
-            + f"\n\nFor reference, the current task names are: {task_names}"
+            + f"\n\nFor reference, the current task names are: {task_names}\n\nAdditionally, here is the data pertaining to each current task: {'\n'.join([json.dumps(task, cls=DateTimeEncoder) for task in tasks])}. "
         )
-    
+
     async def _update_datetime_context(self, cur: str):
         """Update agent instructions with current datetime."""
         now = datetime.now()
-        formatted_datetime = now.strftime("%A, %B %d, %Y at %I:%M %p")
-        
-        datetime_instructions = f"\n\nAdditionally, for reference, the current date and time is: {formatted_datetime}"
+        formatted_datetime = now.astimezone()
+        datetime_instructions = f"\n\nLastly, for reference, the current date and time is: {formatted_datetime}. "
 
         return cur + datetime_instructions
-    
+
 
 async def entrypoint(ctx: agents.JobContext):
     await ctx.connect()
@@ -159,7 +174,8 @@ async def entrypoint(ctx: agents.JobContext):
                         "update_type": update_type,
                         "data": kwargs,
                         "updated_at": time.time(),
-                    }
+                    },
+                    cls=DateTimeEncoder,
                 ),
             )
             await room_service.update_room_metadata(update=update)
@@ -177,14 +193,14 @@ async def entrypoint(ctx: agents.JobContext):
         context: RunContext,
         name: TaskName,
         is_complete: Optional[bool] = False,
-        deadline: Optional[FutureDate] = None,
+        deadline: Optional[FutureDatetime] = None,
         description: Optional[TaskDescription] = None,
     ) -> str:
         """Create a new task for the user's task list. The task name should use the Title Case capitalization style.
 
         Args:
             name (TaskName): The name of the task to create.
-            deadline (FutureDate | None, optional): The deadline (i.e. due date) of the task. Defaults to None.
+            deadline (FutureDatetime | None, optional): The deadline (i.e. due date) of the task. Must in a 24-hour time format. Defaults to None.
             description (TaskDescription | None, optional): An additional description of the task. Defaults to None.
         """
         logger.info(f"The 'create_task' tool was called with name = ({name}).")
@@ -207,7 +223,7 @@ async def entrypoint(ctx: agents.JobContext):
                 description=description,
             )
 
-            return f"Created a new task: '{name}'"
+            return f"Created a new task: '{name}'."
 
         except Exception as ex:
             raise ex
@@ -218,16 +234,16 @@ async def entrypoint(ctx: agents.JobContext):
         name: TaskName,
         new_name: Optional[TaskName] = None,
         is_complete: Optional[bool] = None,
-        new_deadline: Optional[FutureDate] = None,
+        new_deadline: Optional[FutureDatetime] = None,
         new_description: Optional[TaskDescription] = None,
     ) -> str:
         """Edit (i.e. change/update) an existing task, either by changing the task's name, or by changing a facet of the task, for example, the task's deadline.
 
         Args:
             name (TaskName): The name of the task to edit.
-            new_name (TaskName | None, optional): The new name for the task being edited. Defaults to None.
+            new_name (TaskName | None, optional): The new name for the task being edited. Leave blank if the task will have the same name. Defaults to None.
             is_complete (bool | None, optional): The new completion status of the task being edited. Defaults to None.
-            new_deadline (FutureDate | None, optional): The new deadline of the task bein edited. Defaults to None.
+            new_deadline (FutureDatetime | None, optional): The new deadline of the task bein edited. Must be in a 24-hour time format. Defaults to None.
             new_description (TaskDescription | None, optional): The new description of the task being edited. Defaults to None.
         """
         logger.info(f"The edit_task tool was called with name = ({name})")
@@ -238,7 +254,9 @@ async def entrypoint(ctx: agents.JobContext):
             if is_complete is not None:
                 updated_fields["is_complete"] = is_complete
             if new_deadline is not None:
-                updated_fields["deadline"] = new_deadline
+                updated_fields["deadline"] = new_deadline.strftime(
+                    "%A, %B %d, %Y at %I:%M %p"
+                )
             if new_description is not None:
                 updated_fields["description"] = new_description
 
@@ -265,8 +283,8 @@ async def entrypoint(ctx: agents.JobContext):
 
             return f"Edited the task: '{name}'."
         except Exception as ex:
-            logger.error("Error while editing task")
-            raise ex
+            logger.error("Error while editing task, %s.", ex)
+            return "An unknown error occurred."
 
     @function_tool()
     async def delete_task(context: RunContext, name: TaskName) -> str:
