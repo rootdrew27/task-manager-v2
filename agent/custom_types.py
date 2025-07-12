@@ -8,7 +8,7 @@ from pydantic_core import core_schema
 # TaskDescription = constr(min_length=2, max_length=128)
 
 TaskName = Annotated[str, Field(max_length=38, min_length=1)]
-TaskDescription = Annotated[str, Field(max_length=128, min_length=1)]
+TaskDescription = Annotated[str, Field(max_length=128, min_length=0)]
 
 
 class TaskError(Exception):
@@ -30,7 +30,7 @@ class TaskAlreadyExistsError(TaskError):
 
 
 def validate_future_local_datetime(value: datetime) -> datetime:
-    now_local = datetime.now().astimezone()  # Local time with tzinfo
+    now_local = datetime.now().astimezone()  # gets local time with tzinfo
     if value <= now_local:
         raise ValueError(
             f"Datetime must be in the future (local time). Got: {value.isoformat()} <= {now_local.isoformat()}"

@@ -12,9 +12,9 @@ This is a voice-controlled task management application built with two main compo
 ### Key Components
 
 - **LiveKit Agent** (`agent/agent.py`): Voice-controlled task management using OpenAI LLM, Deepgram STT, and Silero VAD
-- **MongoDB Database**: Stores tasks with support for name, description, deadline, and completion status
+- **Postgres Database**: Stores users and tasks. Tasks contain a name, description, deadline, completion status, and a foreign key of the user's id.
 - **Next.js Frontend**: React-based UI with LiveKit components for real-time voice interaction
-- **Database Layer**: Shared MongoDB connection between Python backend and Next.js frontend
+- **Database Layer**: Shared Postgres connection between Python backend and Next.js frontend
 
 ## Development Commands
 

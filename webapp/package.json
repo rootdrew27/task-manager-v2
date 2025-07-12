@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
@@ -29,30 +29,39 @@
     "lodash": "^4.17.21",
     "lucide-react": "^0.525.0",
     "mongodb": "^6.17.0",
+    "next-auth": "^5.0.0-beta.29",
     "openai": "^5.8.2",
+    "pg": "^8.16.3",
     "radix-ui": "^1.4.2",
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1",
+    "react": "19.1.0",
+    "react-dom": "19.1.0",
     "react-icons": "^5.5.0",
     "tailwind-merge": "^3.3.1",
-    "tailwindcss-animate": "^1.0.7"
+    "tailwindcss-animate": "^1.0.7",
+    "turbopack": "^0.0.1",
+    "uuid": "^11.1.0"
   },
   "devDependencies": {
     "@trivago/prettier-plugin-sort-imports": "^5.2.2",
     "@types/lodash": "^4.17.20",
     "@types/lodash.debounce": "^4.0.9",
     "@types/node": "^20.17.13",
-    "@types/react": "^18.3.18",
-    "@types/react-dom": "^18.3.5",
+    "@types/pg": "^8.15.4",
+    "@types/react": "19.1.8",
+    "@types/react-dom": "19.1.6",
     "eslint": "^8.57.1",
-    "eslint-config-next": "14.2.29",
+    "eslint-config-next": "15.3.5",
     "eslint-config-prettier": "9.1.0",
     "eslint-plugin-unused-imports": "^4.1.4",
-    "next": "14",
+    "next": "15.3.5",
     "postcss": "^8.5.1",
     "prettier": "^3.4.2",
     "tailwindcss": "^3.4.17",
     "typescript": "^5.7.3"
   },
-  "packageManager": "npm@9.15.9"
+  "packageManager": "npm@9.15.9",
+  "overrides": {
+    "@types/react": "19.1.8",
+    "@types/react-dom": "19.1.6"
+  }
 }

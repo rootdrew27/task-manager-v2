@@ -42,3 +42,6 @@ __pycache__/
 
 # Logs
 *.log
+
+# Misc
+psycopg_demo.py

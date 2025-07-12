@@ -1,4 +1,5 @@
 from datetime import date, datetime
+from dataclasses import dataclass
 from livekit.agents.llm.llm import ChatChunk
 from livekit.agents.llm.chat_context import FunctionCallOutput
 
@@ -7,7 +8,7 @@ from contextlib import asynccontextmanager
 from livekit.agents.job import get_job_context
 import time
 import json
-from typing import Any, Optional
+from typing import Any, Literal, Optional
 import logging
 
 from dotenv import load_dotenv
@@ -22,13 +23,14 @@ from custom_types import (
     TaskNotFoundError,
     TaskAlreadyExistsError,
 )
-import db as mongodb
+import db
 
 from livekit import api
 from livekit.protocol.room import UpdateRoomMetadataRequest
 
 from livekit import agents
 from livekit.agents import llm
+from livekit.agents.types import NOT_GIVEN
 from livekit.agents.voice import ModelSettings
 from livekit.agents import (
     AgentSession,
@@ -40,11 +42,7 @@ from livekit.agents import (
     RunContext,
 )
 from livekit.agents.llm import RawFunctionTool
-from livekit.plugins import (
-    openai,
-    deepgram,
-    silero,
-)
+from livekit.plugins import openai, deepgram, silero, cartesia
 
 from prompts import TASK_ASSISTANT_INSTRUCTIONS_TEMPLATE
 
@@ -75,9 +73,21 @@ task_assistant_instructions = TASK_ASSISTANT_INSTRUCTIONS_TEMPLATE.format(
     tools=", ".join(TOOL_NAMES), tool_instructions=TOOL_INSTRUCTIONS
 )
 
+Tools = list[FunctionTool | RawFunctionTool] | None
+
+
+@dataclass
+class UserData:
+    id: str
+
+
+async def get_user_data(ctx: agents.JobContext):
+    user_participant = await ctx.wait_for_participant()
+    return UserData(id=user_participant.identity)
+
 
 class TaskAssistant(Agent):
-    def __init__(self, instructions: str, tools, **kwargs) -> None:
+    def __init__(self, instructions: str = "", tools: Tools = None, **kwargs) -> None:
         super().__init__(instructions=instructions, tools=tools, **kwargs)
 
     # TODO: Verify this works
@@ -140,11 +150,12 @@ class TaskAssistant(Agent):
 
     async def _update_task_context(self, cur: str):
         """Update agent instructions with current task names."""
-        tasks = await mongodb.get_tasks()
-        task_names = ", ".join(task.get("name", "") for task in tasks)
+        user_id = self.session.userdata.id
+        tasks = await db.get_tasks(user_id)
+        task_names = ", ".join(task.name for task in tasks)
         return (
             cur
-            + f"\n\nFor reference, the current task names are: {task_names}\n\nAdditionally, here is the data pertaining to each current task: {'\n'.join([json.dumps(task, cls=DateTimeEncoder) for task in tasks])}. "
+            + f"\n\nFor reference, the current task names are: {task_names}.\n\nAdditionally, here is the data pertaining to the current tasks:\n {'\n'.join([json.dumps(task.model_dump(exclude={'id', 'user_id'}), separators=(',', ':'), cls=DateTimeEncoder) for task in tasks])}.\n"
         )
 
     async def _update_datetime_context(self, cur: str):
@@ -161,6 +172,8 @@ async def entrypoint(ctx: agents.JobContext):
 
     lkapi = api.LiveKitAPI()
     room_service = lkapi.room
+
+    await db.init_pool()
 
     async def update_room_metadata(update_type: str, ctx: RunContext, **kwargs):
         try:
@@ -182,10 +195,20 @@ async def entrypoint(ctx: agents.JobContext):
         except TypeError as te:
             logger.error(te)
 
-    session = AgentSession(
-        stt=deepgram.STT(model="nova-3", language="multi"),
-        llm=openai.LLM(model="gpt-4o-mini", max_completion_tokens=2500),
+    userdata = await get_user_data(ctx)
+
+    ac = await db.getAgentConfig(userdata.id)
+
+    session = AgentSession[UserData](
+        stt=deepgram.STT(model=ac.stt_model, api_key=ac.stt_key, language="multi"),
+        llm=openai.LLM(
+            model=ac.llm_model, api_key=ac.llm_key, max_completion_tokens=2500
+        ),
+        tts=cartesia.TTS(model=ac.tts_model, api_key=ac.tts_key)
+        if ac.tts_key is not None and ac.tts_model is not None
+        else NOT_GIVEN,
         vad=silero.VAD.load(),
+        userdata=userdata,
     )
 
     @function_tool()
@@ -205,7 +228,10 @@ async def entrypoint(ctx: agents.JobContext):
         """
         logger.info(f"The 'create_task' tool was called with name = ({name}).")
         try:
-            result = await mongodb.create_task(name, is_complete, deadline, description)
+            user_id = context.session.userdata.id
+            result = await db.create_task(
+                user_id, name, is_complete, deadline, description
+            )
 
             # TODO: Create another logger for agent messages
             if isinstance(result, TaskAlreadyExistsError):
@@ -232,53 +258,47 @@ async def entrypoint(ctx: agents.JobContext):
     async def edit_task(
         context: RunContext,
         name: TaskName,
-        new_name: Optional[TaskName] = None,
-        is_complete: Optional[bool] = None,
-        new_deadline: Optional[FutureDatetime] = None,
-        new_description: Optional[TaskDescription] = None,
+        new_name: Optional[TaskName],
+        is_complete: Optional[bool],
+        new_deadline: FutureDatetime | Literal["No Update"] | None,
+        new_description: Optional[TaskDescription],
     ) -> str:
-        """Edit (i.e. change/update) an existing task, either by changing the task's name, or by changing a facet of the task, for example, the task's deadline.
+        """Edit (i.e. change/update) an existing task. This function can alter the task's name, the task's completion status, the task's deadline, and the task's description. Edits to each facet are optional.
 
         Args:
-            name (TaskName): The name of the task to edit.
-            new_name (TaskName | None, optional): The new name for the task being edited. Leave blank if the task will have the same name. Defaults to None.
-            is_complete (bool | None, optional): The new completion status of the task being edited. Defaults to None.
-            new_deadline (FutureDatetime | None, optional): The new deadline of the task bein edited. Must be in a 24-hour time format. Defaults to None.
-            new_description (TaskDescription | None, optional): The new description of the task being edited. Defaults to None.
+            name (TaskName): The name of the task being edited.
+            new_name (Optional[TaskName]): The new name for the task, or None for no new name.
+            is_complete (bool | None): The completion status of the task. Pass None to forgo updating it.
+            new_deadline (FutureDatetime | Literal["No Update"] | None): The new deadline of the task. Pass "No Update" to forgo updating it. Pass None to remove it.
+            new_description (TaskDescription | None): The new description of the task. Pass an empty string to remove the description. Pass None to forgo updating it.
+
         """
         logger.info(f"The edit_task tool was called with name = ({name})")
+        user_id = context.session.userdata.id
         try:
             updated_fields: dict[str, Any] = {}
             if new_name is not None:
                 updated_fields["name"] = new_name
             if is_complete is not None:
                 updated_fields["is_complete"] = is_complete
-            if new_deadline is not None:
-                updated_fields["deadline"] = new_deadline.strftime(
-                    "%A, %B %d, %Y at %I:%M %p"
-                )
+            if new_deadline != "No Update":
+                updated_fields["deadline"] = new_deadline
             if new_description is not None:
                 updated_fields["description"] = new_description
 
-            result = await mongodb.edit_task(name, updated_fields)
+            updated_task = await db.edit_task(user_id, name, updated_fields)
 
-            if isinstance(result, ValueError):
+            if isinstance(updated_task, ValueError):
                 return f"The task with the name '{name}' could not be edited. No fields were specified to be updated."
 
-            if isinstance(result, TaskError):
+            if isinstance(updated_task, TaskError):
                 return f"The task with the name '{name}' could not be edited. An unknown error occured."
 
-            if isinstance(result, TaskNotFoundError):
+            if isinstance(updated_task, TaskNotFoundError):
                 return f"The task with the name '{name}' was not edited. Either the task could not be found, or the field(s) {"'" + "', '".join([k for k in updated_fields.keys()]) + "'"} did not need to be updated."
 
             await update_room_metadata(
-                "EDIT",
-                context,
-                name=name,
-                new_name=new_name,
-                is_complete=is_complete,
-                new_deadline=new_deadline,
-                new_description=new_description,
+                "EDIT", context, initial_name=name, task=updated_task.model_dump()
             )
 
             return f"Edited the task: '{name}'."
@@ -294,8 +314,9 @@ async def entrypoint(ctx: agents.JobContext):
             name (TaskName): The name of the task to delete.
         """
         logger.info(f"The delete_task tool was called with name = ({name})")
+        user_id = context.session.userdata.id
         try:
-            result = await mongodb.delete_task(name)
+            result = await db.delete_task(user_id, name)
 
             if isinstance(result, TaskNotFoundError):
                 return f"Failed to delete a task with the name '{name}'. No matching task was found."
@@ -316,18 +337,9 @@ async def entrypoint(ctx: agents.JobContext):
         logger.info("The invalid_request tool was called.")
         return "Invalid Request."
 
-    tools = [create_task, edit_task, delete_task, invalid_request]
+    tools: Tools = [create_task, edit_task, delete_task, invalid_request]
 
-    init_task_names = ", ".join(
-        [task.get("name", "") for task in (await mongodb.get_tasks())]
-    )
-
-    instructions = (
-        task_assistant_instructions
-        + f"\n\nFor reference, the current task names are: {init_task_names}"
-    )
-
-    task_assistant = TaskAssistant(instructions=instructions, tools=tools)
+    task_assistant = TaskAssistant(tools=tools)
 
     await session.start(
         agent=task_assistant,
@@ -337,6 +349,7 @@ async def entrypoint(ctx: agents.JobContext):
             transcription_enabled=True, audio_enabled=False
         ),
     )
+    await task_assistant._update_instructions(task_assistant_instructions)
 
 
 if __name__ == "__main__":

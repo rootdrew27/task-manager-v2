@@ -1,39 +1,15 @@
 "use server";
 
+import { saveModelKeysAndPreferences } from "@/db/agent-config";
+import {
+  ApiKeys,
+  ConfigurationResult,
+  SelectedModels,
+  SetupData,
+  ValidationResult,
+} from "@/types/agent";
 import { OpenAI } from "openai";
-
-interface ApiKeys {
-  deepgram: string;
-  openai: string;
-  cartesia: string;
-}
-
-interface SelectedModels {
-  deepgram: string;
-  openai: string;
-  cartesia?: string;
-}
-
-interface SetupData {
-  apiKeys: ApiKeys;
-  selectedModels: SelectedModels;
-}
-
-interface ValidationResult {
-  isValid: boolean;
-  errors?: string[];
-  validatedServices?: string[];
-  availableModels?: {
-    openai: boolean;
-    deepgram: boolean;
-    cartesia: boolean;
-  };
-}
-
-interface ConfigurationResult {
-  isValid: boolean;
-  errors?: string[];
-}
+import { getUserId } from "../auth/utils";
 
 const VALID_MODELS = {
   openai: ["gpt-4o", "gpt-4o-mini", "gpt-3.5-turbo"],
@@ -198,7 +174,8 @@ export async function saveConfiguration(data: SetupData): Promise<ConfigurationR
   const isValid = errors.length === 0;
 
   if (isValid) {
-    // TODO: Store validated keys and models in session/database
+    const userId = await getUserId();
+    await saveModelKeysAndPreferences(userId, apiKeys, selectedModels);
     console.log('Configuration "saved" successfully');
     console.log(
       "API Keys validated for:",

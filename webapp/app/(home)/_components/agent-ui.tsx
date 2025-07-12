@@ -46,27 +46,14 @@ export const AgentUI = ({ initTasks }: { initTasks: TaskInfo[] }) => {
           console.log(`Data: ${JSON.stringify(data)}`);
           setTasks((prev) => [...prev, build_task_obj(data)]);
         } else if (update_type === "EDIT") {
-          const { name, new_name, is_complete, new_deadline, new_description } = data;
+          const { initial_name, task: new_task } = data;
 
           console.log("Editing tasks.");
           console.log(`Current tasks: ${JSON.stringify(tasks)}`);
           setTasks((tasks) =>
             tasks.map((task) => {
-              if (task.name.trim().toLowerCase() === name.trim().toLowerCase()) {
-                const newTaskName = new_name ?? task.name;
-                const newIsComplete =
-                  is_complete !== null && is_complete !== undefined
-                    ? is_complete
-                    : task.is_complete;
-                const newDeadline = new_deadline ?? task.deadline;
-                const newDescription = new_description ?? task.description;
-
-                return build_task_obj({
-                  name: newTaskName,
-                  is_complete: newIsComplete,
-                  deadline: newDeadline,
-                  description: newDescription,
-                });
+              if (task.name.trim().toLowerCase() === initial_name.trim().toLowerCase()) {
+                return build_task_obj(new_task);
               } else {
                 return task;
               }
