@@ -1,4 +1,5 @@
 import { pool } from "@/db/connect";
+import { validateApiKeys } from "@/lib/agent/setup";
 import { ApiKeys, SelectedModels } from "@/types/agent";
 
 export async function saveModelKeysAndPreferences(
@@ -44,5 +45,42 @@ export async function saveModelKeysAndPreferences(
     await client.query("ROLLBACK");
   } finally {
     client.release();
+  }
+}
+
+export async function getSelectedModelsAndValidateApiKeys(userId: string) {
+  const client = await pool.connect();
+  try {
+    const { rows } = await client.query(
+      `
+      SELECT stt.model AS stt_model, stt.key AS stt_key, llm.model AS llm_model, llm.key AS llm_key, tts.model AS tts_model, tts.key AS tts_key
+      FROM stt JOIN llm ON stt.user_id = llm.user_id
+      LEFT JOIN tts ON stt.user_id = tts.user_id
+      WHERE stt.user_id = $1;
+      `,
+      [userId]
+    );
+
+    const {
+      stt_model: sttModel,
+      stt_key: sttKey,
+      llm_model: llmModel,
+      llm_key: llmKey,
+      tts_model: ttsModel,
+      tts_key: ttsKey,
+    } = rows[0];
+    const { isValid } = await validateApiKeys({
+      deepgram: sttKey,
+      openai: llmKey,
+      cartesia: ttsKey ?? "",
+    });
+
+    if (isValid) {
+      return { deepgram: sttModel, openai: llmModel, cartesia: ttsModel } as SelectedModels;
+    }
+
+    return null;
+  } catch (error) {
+    throw error;
   }
 }

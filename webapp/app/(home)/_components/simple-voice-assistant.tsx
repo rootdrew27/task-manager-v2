@@ -8,7 +8,10 @@ import { AgentButton } from "./agent-button";
 import { AgentVisualizer } from "./agent-visualizer";
 import { ControlBar } from "./control-bar";
 
-function SimpleVoiceAssistant(props: { onConnectButtonClicked: () => void }) {
+function SimpleVoiceAssistant(props: {
+  onConnectButtonClicked: () => void;
+  isValidConfig: boolean;
+}) {
   const { state: agentState } = useVoiceAssistant();
 
   return (
@@ -23,7 +26,10 @@ function SimpleVoiceAssistant(props: { onConnectButtonClicked: () => void }) {
             transition={{ duration: 0.3, ease: [0.09, 0.5, 0.245, 1.055] }}
             className="grid items-center justify-center h-full"
           >
-            <AgentButton onConnectButtonClicked={props.onConnectButtonClicked} />
+            <AgentButton
+              onConnectButtonClicked={props.onConnectButtonClicked}
+              isInitValidConfig={props.isValidConfig}
+            />
           </motion.div>
         ) : (
           <motion.div

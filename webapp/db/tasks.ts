@@ -9,10 +9,9 @@ export async function getTasksByUserId(userId: string) {
       WHERE user_id = $1;
     `;
     const values = [userId];
+    const { rows } = await pool.query<TaskInfoFromDB>(query, values);
 
     const tasks = [];
-
-    const { rows } = await pool.query<TaskInfoFromDB>(query, values);
     for (const row of rows) {
       tasks.push(build_task_obj(row));
     }

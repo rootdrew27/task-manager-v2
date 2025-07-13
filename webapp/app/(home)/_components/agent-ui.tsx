@@ -3,6 +3,7 @@
 import type { ConnectionDetails } from "@/app/api/connection-details/route";
 import { Settings } from "@/components/Settings";
 import { build_task_obj_from_livekit } from "@/lib/task";
+import { SelectedModels } from "@/types/agent";
 import { RoomContext } from "@livekit/components-react";
 import { Room, RoomEvent } from "livekit-client";
 import { useCallback, useEffect, useState } from "react";
@@ -17,7 +18,13 @@ function onDeviceFailure(error: Error) {
   );
 }
 
-export const AgentUI = ({ initTasks }: { initTasks: TaskInfo[] }) => {
+export const AgentUI = ({
+  initTasks,
+  selectedModels,
+}: {
+  initTasks: TaskInfo[];
+  selectedModels: SelectedModels | null;
+}) => {
   const [room] = useState(new Room());
   const [tasks, setTasks] = useState(initTasks);
 
@@ -33,6 +40,7 @@ export const AgentUI = ({ initTasks }: { initTasks: TaskInfo[] }) => {
     await room.localParticipant.setMicrophoneEnabled(true);
   }, [room]);
 
+  // TODO: Consider moving the following into its own hook file
   useEffect(() => {
     const handleUpdatedRoomMetadata = () => {
       const metadata = room?.metadata;
@@ -88,7 +96,10 @@ export const AgentUI = ({ initTasks }: { initTasks: TaskInfo[] }) => {
     <div className="flex flex-col h-full w-full items-center lg:flex-row lg:space-y-0 lg:space-x-4 lg:items-stretch">
       <RoomContext.Provider value={room}>
         <div className="lk-room-container flex flex-1 items-center justify-center mx-auto">
-          <SimpleVoiceAssistant onConnectButtonClicked={onConnectButtonClicked} />
+          <SimpleVoiceAssistant
+            onConnectButtonClicked={onConnectButtonClicked}
+            isValidConfig={!!selectedModels}
+          />
         </div>
         <div className="flex-1 flex flex-col justify-center p-2">
           <TaskManager tasks={tasks} />

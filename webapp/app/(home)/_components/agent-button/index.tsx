@@ -3,8 +3,11 @@ import React, { useState } from "react";
 import { RiChatVoiceAiLine } from "react-icons/ri";
 import { APIKeyValidationModal } from "./api-key-validation-modal";
 
-export function AgentButton(props: { onConnectButtonClicked: () => void }) {
-  const [isValidConfig, setIsValidConfig] = useState(false);
+export function AgentButton(props: {
+  onConnectButtonClicked: () => void;
+  isInitValidConfig: boolean;
+}) {
+  const [isValidConfig, setIsValidConfig] = useState(props.isInitValidConfig);
 
   if (isValidConfig) {
     return (
