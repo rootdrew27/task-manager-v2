@@ -1,18 +1,35 @@
-export function build_task_obj({
+export function build_task_obj({ name, is_complete, deadline, description }: TaskInfoFromDB) {
+  return {
+    name: name,
+    is_complete: is_complete,
+    deadline: deadline
+      ? deadline.toLocaleDateString("en-US", {
+          weekday: "long",
+          year: "numeric",
+          month: "long",
+          day: "numeric",
+        }) +
+        " at " +
+        deadline.toLocaleTimeString("en-US", {
+          hour: "numeric",
+          minute: "2-digit",
+          hour12: true,
+        })
+      : null,
+    description: description ?? null,
+  };
+}
+
+export function build_task_obj_from_livekit({
   name,
   is_complete,
   deadline,
   description,
-}: {
-  name: string;
-  is_complete?: boolean;
-  deadline?: string | null;
-  description?: string | null;
-}): TaskInfo {
+}: TaskInfoFromLiveKit) {
   return {
     name: name,
-    is_complete: is_complete !== null && is_complete !== undefined ? is_complete : false,
-    deadline: deadline ?? null,
-    description: description ?? null,
+    is_complete: is_complete ?? false,
+    deadline: deadline ?? "",
+    description: description ?? "",
   };
 }

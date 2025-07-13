@@ -2,7 +2,7 @@
 
 import type { ConnectionDetails } from "@/app/api/connection-details/route";
 import { Settings } from "@/components/Settings";
-import { build_task_obj } from "@/lib/task";
+import { build_task_obj_from_livekit } from "@/lib/task";
 import { RoomContext } from "@livekit/components-react";
 import { Room, RoomEvent } from "livekit-client";
 import { useCallback, useEffect, useState } from "react";
@@ -44,7 +44,7 @@ export const AgentUI = ({ initTasks }: { initTasks: TaskInfo[] }) => {
         if (update_type === "CREATE") {
           console.log("Creating a task");
           console.log(`Data: ${JSON.stringify(data)}`);
-          setTasks((prev) => [...prev, build_task_obj(data)]);
+          setTasks((prev) => [...prev, build_task_obj_from_livekit(data)]);
         } else if (update_type === "EDIT") {
           const { initial_name, task: new_task } = data;
 
@@ -53,7 +53,7 @@ export const AgentUI = ({ initTasks }: { initTasks: TaskInfo[] }) => {
           setTasks((tasks) =>
             tasks.map((task) => {
               if (task.name.trim().toLowerCase() === initial_name.trim().toLowerCase()) {
-                return build_task_obj(new_task);
+                return build_task_obj_from_livekit(new_task);
               } else {
                 return task;
               }

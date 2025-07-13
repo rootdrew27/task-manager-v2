@@ -12,7 +12,7 @@ export async function getTasksByUserId(userId: string) {
 
     const tasks = [];
 
-    const { rows } = await pool.query<TaskInfo>(query, values);
+    const { rows } = await pool.query<TaskInfoFromDB>(query, values);
     for (const row of rows) {
       tasks.push(build_task_obj(row));
     }

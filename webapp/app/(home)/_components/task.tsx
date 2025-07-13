@@ -35,7 +35,7 @@ function Task(props: { info: TaskInfo; delay: number }) {
           </div>
         </AccordionTrigger>
         <AccordionContent>
-          <div>Deadline: {props.info.deadline}</div>
+          <div>Deadline: {props.info.deadline?.toString()}</div>
           <div>Description: {props.info.description}</div>
         </AccordionContent>
       </Accordion.Item>
