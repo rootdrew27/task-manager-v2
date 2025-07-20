@@ -61,14 +61,28 @@ export async function getSelectedModelsAndValidateApiKeys(userId: string) {
       [userId]
     );
 
+    const modelSelections = rows[0];
+
+    if (!modelSelections) {
+      return null;
+    }
+
     const {
       stt_model: sttModel,
       stt_key: sttKey,
       llm_model: llmModel,
       llm_key: llmKey,
-      tts_model: ttsModel,
-      tts_key: ttsKey,
+      tts_model: ttsModel = null,
+      tts_key: ttsKey = null,
     } = rows[0];
+
+    if (!sttModel || !llmModel) {
+      console.error(
+        "The stt model and the llm model should be defined if the result of the previous query is defined."
+      );
+      return null; // return null to user (TODO: send msg for toast notification)
+    }
+
     const { isValid } = await validateApiKeys({
       deepgram: sttKey,
       openai: llmKey,
