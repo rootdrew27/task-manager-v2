@@ -27,13 +27,6 @@ async def init_pool():
     await pool.open()
 
 
-# class Task(TypedDict, total=False):
-#     name: str
-#     is_complete: bool
-#     deadline: date | str | None
-#     description: str | None
-
-
 class Task(BaseModel):
     name: str
     is_complete: bool

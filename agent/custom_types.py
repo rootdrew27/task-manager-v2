@@ -4,11 +4,16 @@ from datetime import datetime
 from pydantic import GetCoreSchemaHandler
 from pydantic_core import core_schema
 
+from livekit.agents import FunctionTool
+from livekit.agents.llm import RawFunctionTool
+
 # TaskName = constr(min_length=1, max_length=38)
 # TaskDescription = constr(min_length=2, max_length=128)
 
 TaskName = Annotated[str, Field(max_length=38, min_length=1)]
 TaskDescription = Annotated[str, Field(max_length=128, min_length=0)]
+
+Tools = list[FunctionTool | RawFunctionTool] | None
 
 
 class TaskError(Exception):

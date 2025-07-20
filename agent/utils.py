@@ -1,3 +1,5 @@
+from datetime import date, datetime
+import json
 import os
 import yaml
 
@@ -20,3 +22,12 @@ def load_prompt(filename):
     except (FileNotFoundError, yaml.YAMLError) as e:
         print(f"Error loading prompt file {filename}: {e}")
         return ""
+
+
+class DateTimeEncoder(json.JSONEncoder):
+    """Custom JSON encoder that formats datetime objects using the specified format."""
+
+    def default(self, o):
+        if isinstance(o, (datetime, date)):
+            return o.strftime("%A, %B %d, %Y at %I:%M %p")
+        return super().default(o)

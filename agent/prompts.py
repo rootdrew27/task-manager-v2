@@ -3,7 +3,5 @@ TASK_ASSISTANT_INSTRUCTIONS_TEMPLATE = """
 
     You have access to the following functions: {tools}
     
-    Here are instructions pertaining to the functions (i.e. tools) that you have access to:
-
-    {tool_instructions}.
+    Here are instructions pertaining to the functions (i.e. tools) that you have access to: {tool_instructions}
     """
