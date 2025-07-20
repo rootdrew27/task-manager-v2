@@ -5,24 +5,26 @@ export default auth(async (req) => {
   console.log("HIT MIDDLEWARE!");
   const res = NextResponse.next();
 
-  const guestId = req.cookies.get("guest_id")?.value;
+  if (!req.auth?.id) {
+    const guestId = req.cookies.get("guest_id")?.value;
 
-  if (!guestId) {
-    const res2 = await fetch(`${process.env.AUTH_URL}/api/internal/guest`, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": process.env.INTERNAL_API_KEY!,
-      },
-    });
-    const { guestId } = await res2.json();
-    res.cookies.set("guest_id", guestId, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      path: "/",
-      maxAge: 60 * 60 * 24 * 1, // 1 day
-    });
+    if (!guestId) {
+      const res2 = await fetch(`${process.env.AUTH_URL}/api/internal/guest`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": process.env.INTERNAL_API_KEY!,
+        },
+      });
+      const { guestId } = await res2.json();
+      res.cookies.set("guest_id", guestId, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        path: "/",
+        maxAge: 60 * 60 * 24 * 1, // 1 day
+      });
+    }
   }
 
   // Handle internal API routes
