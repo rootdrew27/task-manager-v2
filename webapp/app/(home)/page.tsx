@@ -2,7 +2,7 @@ import { auth } from "@/auth";
 import { getSelectedModelsAndValidateApiKeys } from "@/db/agent-config";
 import { getTasksByUserId } from "@/db/tasks";
 import { cookies } from "next/headers";
-import { AgentUI } from "./_components/agent-ui";
+import { Agent } from "./_components/agent";
 
 export default async function Page() {
   const cookieStore = await cookies();
@@ -23,7 +23,7 @@ export default async function Page() {
 
   return (
     <div data-lk-theme="default" className="h-full w-full flex flex-col bg-[var(--lk-bg)] p-6">
-      <AgentUI initTasks={initTasks} selectedModels={selectedModels} />
+      <Agent initTasks={initTasks} selectedModels={selectedModels} />
     </div>
   );
 }

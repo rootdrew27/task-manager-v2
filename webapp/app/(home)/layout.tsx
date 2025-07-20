@@ -1,5 +1,5 @@
 import { auth } from "@/auth";
-import { Navbar } from "@/components/navbar";
+import { Navbar } from "@/components/Navbar";
 
 export default async function HomeLayout({
   children,

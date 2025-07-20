@@ -1,7 +1,7 @@
 "use client";
 
-import { AgentChatMessages } from "@/components/AgentChatMessages";
-import { NoAgentNotification } from "@/components/NoAgentNotification";
+import { AgentChatMessages } from "@/app/(home)/_components/agent-ui/AgentChatMessages";
+import { NoAgentNotification } from "@/app/(home)/_components/agent-ui/NoAgentNotification";
 import { RoomAudioRenderer, useVoiceAssistant } from "@livekit/components-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { AgentButton } from "./agent-button";

@@ -12,7 +12,7 @@ export function AgentChatMessages() {
     async function typeText(text: string) {
       for (const char of text) {
         setLiveMessage((prev) => prev + char);
-        await new Promise((res) => setTimeout(res, 30)); // Typing delay (adjust to your taste)
+        await new Promise((res) => setTimeout(res, 30)); // Typing delay (adjust to taste)
       }
 
       setCompleteMessages((prev) => [...prev, text]);
