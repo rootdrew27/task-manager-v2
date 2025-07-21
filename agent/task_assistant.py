@@ -21,9 +21,10 @@ logger = logging.getLogger("Agent")
 
 class TaskAssistant(Agent):
     def __init__(
-        self, init_instructions: str = "", tools: Tools = None, **kwargs
+        self, text_writer, init_instructions: str = "", tools: Tools = None, **kwargs
     ) -> None:
         self.init_instructions = init_instructions
+        self.writer = text_writer
         super().__init__(instructions=init_instructions, tools=tools, **kwargs)
 
     # TODO: Verify this works
@@ -53,19 +54,27 @@ class TaskAssistant(Agent):
     async def _stream_with_text_output(self, chat_ctx, tools, model_settings):
         """Stream LLM output while also writing to text stream"""
         try:
-            async with self.text_stream_writer() as writer:
-                async for chunk in Agent.default.llm_node(
-                    self, chat_ctx, tools, model_settings
-                ):
-                    if isinstance(chunk, ChatChunk):
-                        content = (
-                            getattr(chunk.delta, "content", None)
-                            if hasattr(chunk, "delta")
-                            else None
-                        )
-                        if isinstance(content, str):
-                            await writer.write(content)
-                    yield chunk
+            # async with self.text_stream_writer() as writer:
+            print("Writer info:", self.writer.info)
+            async for chunk in Agent.default.llm_node(
+                self, chat_ctx, tools, model_settings
+            ):
+                if isinstance(chunk, ChatChunk):
+                    content = (
+                        getattr(chunk.delta, "content", None)
+                        if hasattr(chunk, "delta")
+                        else None
+                    )
+                    print("Content:", content)
+                    if isinstance(content, str):
+                        await self.writer.write(content)
+                elif isinstance(chunk, str):
+                    await self.writer.write(chunk)
+                else:
+                    raise Exception(
+                        "Expected default llm_node to yield a ChatChunk or a string"
+                    )
+                yield chunk
         except Exception as ex:
             logger.error(f"Issue streaming text to topic. Error: {ex}.")
 

@@ -26,6 +26,7 @@ from livekit.agents import (
     RoomOutputOptions,
     function_tool,
     RunContext,
+    get_job_context,
 )
 from livekit.plugins import openai, deepgram, silero, cartesia
 
@@ -233,7 +234,12 @@ async def entrypoint(ctx: agents.JobContext):
 
     tools: Tools = [create_task, edit_task, delete_task, invalid_request]
 
-    task_assistant = TaskAssistant(tools=tools)
+    room = get_job_context().room
+    writer = await room.local_participant.stream_text(topic="task-assistant--text")
+
+    task_assistant = TaskAssistant(
+        writer, init_instructions=task_assistant_instructions, tools=tools
+    )
 
     await session.start(
         agent=task_assistant,

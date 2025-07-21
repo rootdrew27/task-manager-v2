@@ -6,7 +6,7 @@ import { useTasks } from "@/hooks/useTasks";
 import { SelectedModels } from "@/types/agent";
 import { RoomContext } from "@livekit/components-react";
 import { Room } from "livekit-client";
-import { useCallback, useState } from "react";
+import { useCallback, useMemo } from "react";
 // import { GiConsoleController } from "react-icons/gi";
 import { SimpleVoiceAssistant } from "./agent-ui";
 import { TaskManager } from "./task-manager";
@@ -18,7 +18,7 @@ export const Agent = ({
   initTasks: TaskInfo[];
   selectedModels: SelectedModels | null;
 }) => {
-  const [room] = useState(new Room());
+  const room = useMemo(() => new Room(), []);
 
   const onConnectButtonClicked = useCallback(async () => {
     const url = new URL(
@@ -29,6 +29,7 @@ export const Agent = ({
     const connectionDetailsData: ConnectionDetails = await response.json();
 
     await room.connect(connectionDetailsData.serverUrl, connectionDetailsData.participantToken);
+    console.log("connected to livekit room");
     await room.localParticipant.setMicrophoneEnabled(true);
   }, [room]);
 
