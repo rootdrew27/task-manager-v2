@@ -1,7 +1,7 @@
 "use client";
 
 import type { ConnectionDetails } from "@/app/api/connection-details/route";
-import { Settings } from "@/components/Settings";
+import { Settings } from "@/components/settings";
 import { useTasks } from "@/hooks/useTasks";
 import { ApiKeyValidity, SelectedModels } from "@/types/agent";
 import { RoomContext } from "@livekit/components-react";

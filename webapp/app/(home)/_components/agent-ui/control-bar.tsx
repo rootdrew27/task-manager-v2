@@ -1,12 +1,12 @@
 "use client";
 
-import { CloseIcon } from "@/components/CloseIcon";
 import {
   DisconnectButton,
   VoiceAssistantControlBar,
   useVoiceAssistant,
 } from "@livekit/components-react";
 import { AnimatePresence, motion } from "framer-motion";
+import { IoClose } from "react-icons/io5";
 
 function ControlBar(props: { onConnectButtonClicked: () => void }) {
   const { state: agentState } = useVoiceAssistant();
@@ -38,7 +38,7 @@ function ControlBar(props: { onConnectButtonClicked: () => void }) {
           >
             <VoiceAssistantControlBar controls={{ leave: false }} />
             <DisconnectButton>
-              <CloseIcon />
+              <IoClose className="h-5 w-5" />
             </DisconnectButton>
           </motion.div>
         )}
