@@ -100,8 +100,6 @@ export async function updateSelectedModels(userId: string, newModelSelections: S
     [userId]
   );
 
-  console.log(rows[0]);
-
   const modelSelections = rows[0];
   let hasStt: boolean, hasLlm: boolean, hasTts: boolean;
   if (!modelSelections) {
@@ -232,8 +230,6 @@ export async function validateCurrentApiKeys(userId: string) {
     if (!result) {
       return null;
     }
-
-    console.log(result.stt_key);
 
     return {
       stt: result.stt_key ? true : false,

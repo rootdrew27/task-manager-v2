@@ -19,7 +19,6 @@ export function AgentChatMessages() {
       setLiveMessage("");
     }
 
-    console.log("registering handler");
     room.registerTextStreamHandler("lk.transcription", async (reader, participantInfo) => {
       try {
         if (participantInfo.identity !== room.localParticipant.identity) {
@@ -32,17 +31,6 @@ export function AgentChatMessages() {
         );
       }
     });
-    // room.registerTextStreamHandler("task-assistant--text", async (reader) => {
-    //   try {
-    //     console.log("Received Text")
-    //     const currentMsg = await reader.readAll();
-    //     await typeText(currentMsg);
-    //   } catch (error) {
-    //     console.log(
-    //       `Error while reading text stream from task-assistant--text topic. Error: ${error}`
-    //     );
-    //   }
-    // });
 
     return () => {
       // room.unregisterTextStreamHandler("task-assistant--text");

@@ -1,3 +1,4 @@
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -76,7 +77,6 @@ export function APIKeyValidationModal({
     }
 
     try {
-      console.log("API Keys:", apiKeys);
       const result = await validateAndSaveApiKeys(apiKeys);
 
       if (!result.isValid) {
@@ -199,13 +199,15 @@ export function APIKeyValidationModal({
                 </div>
               </div>
             )}
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="w-auto bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-medium py-2 px-4 rounded-md transition-colors"
-            >
-              {isLoading ? "Validating..." : "Validate API Keys"}
-            </button>
+            <div className="w-full">
+              <Button
+                type="submit"
+                disabled={isLoading}
+                className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed float-end text-white font-medium transition-colors h-6"
+              >
+                {isLoading ? "Validating..." : "Validate API Keys"}
+              </Button>
+            </div>
           </form>
         </DialogContent>
       </Dialog>

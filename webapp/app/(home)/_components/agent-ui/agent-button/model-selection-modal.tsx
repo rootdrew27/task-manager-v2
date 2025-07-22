@@ -1,3 +1,4 @@
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -157,13 +158,15 @@ export function ModelSelectionModal({
             </div>
           )}
 
-          <button
-            type="submit"
-            disabled={isLoading}
-            className="w-auto bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-medium py-2 px-4 rounded-md transition-colors"
-          >
-            {isLoading ? "Saving..." : "Save Configuration"}
-          </button>
+          <div className="w-full">
+            <Button
+              type="submit"
+              disabled={isLoading}
+              className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed float-end text-white font-medium h-6 transition-colors"
+            >
+              Start
+            </Button>
+          </div>
         </form>
       </DialogContent>
     </Dialog>

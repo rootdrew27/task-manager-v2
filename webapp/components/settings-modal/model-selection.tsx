@@ -36,6 +36,7 @@ interface ModelSelectionProps {
 export function ModelSelection({ selectedModels, setSelectedModels }: ModelSelectionProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<string[]>([]);
+  const [successMessages, setSuccessMessages] = useState<string[]>([]);
 
   // Local state for temporary selections (resets when modal closes)
   const [localSelectedModels, setLocalSelectedModels] = useState<SelectedModels>({
@@ -72,6 +73,7 @@ export function ModelSelection({ selectedModels, setSelectedModels }: ModelSelec
       } else {
         // Only update parent state on successful save
         setSelectedModels(updatedModels);
+        setSuccessMessages([`Your model selections were saved.`]);
       }
     } catch (error) {
       console.error(error);
@@ -84,10 +86,20 @@ export function ModelSelection({ selectedModels, setSelectedModels }: ModelSelec
   return (
     <>
       {errors.length > 0 && (
-        <div className="bg-red-50 border border-red-200 rounded-md p-3">
+        <div className="bg-red-50 border border-red-200 rounded-md p-3 mb-2">
           <ul className="text-red-700 text-sm space-y-1">
             {errors.map((error, index) => (
               <li key={index}>• {error}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {successMessages.length > 0 && (
+        <div className="bg-green-50 border border-green-200 rounded-md p-3 mb-2">
+          <ul className="text-green-700 text-sm space-y-1">
+            {successMessages.map((msg, index) => (
+              <li key={index}>• {msg}</li>
             ))}
           </ul>
         </div>
@@ -167,7 +179,7 @@ export function ModelSelection({ selectedModels, setSelectedModels }: ModelSelec
             disabled={isLoading}
             className="px-4 py-2 text-sm font-medium bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-md transition-colors"
           >
-            {isLoading ? "Saving..." : "Save Changes"}
+            Save Selections
           </button>
         </div>
       </form>
