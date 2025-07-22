@@ -1,13 +1,13 @@
 "use server";
 
-import { saveModelKeysAndPreferences } from "@/db/agent-config";
 import {
-  ApiKeys,
-  ConfigurationResult,
-  SelectedModels,
-  SetupData,
-  ValidationResult,
-} from "@/types/agent";
+  saveApiKeys,
+  saveModelKeysAndPreferences,
+  updateSelectedModels,
+  validateConfigByUserId,
+} from "@/db/agent-config";
+import { pool } from "@/db/connect";
+import { ApiKeys, ConfigurationResult, SelectedModels, SetupData } from "@/types/agent";
 import { OpenAI } from "openai";
 import { getUserId } from "../auth/utils";
 
@@ -69,64 +69,100 @@ async function validateCartesiaKey(apiKey: string): Promise<{ isValid: boolean; 
   }
 }
 
-function validateModelSelection(selectedModels: SelectedModels): {
+function validateSelectedModels(selectedModels: SelectedModels): {
   isValid: boolean;
   errors?: string[];
 } {
   const errors: string[] = [];
 
-  if (!selectedModels.openai || !VALID_MODELS.openai.includes(selectedModels.openai)) {
+  if (!selectedModels.llm || !VALID_MODELS.openai.includes(selectedModels.llm)) {
     errors.push(`Invalid OpenAI model`);
   }
 
-  if (!selectedModels.deepgram || !VALID_MODELS.deepgram.includes(selectedModels.deepgram)) {
+  if (!selectedModels.stt || !VALID_MODELS.deepgram.includes(selectedModels.stt)) {
     errors.push(`Invalid Deepgram model`);
   }
-  if (selectedModels.cartesia && !VALID_MODELS.cartesia.includes(selectedModels.cartesia)) {
+  if (selectedModels.tts && !VALID_MODELS.cartesia.includes(selectedModels.tts ?? "")) {
     errors.push(`Invalid Cartesia model`);
   }
 
   return { isValid: errors.length === 0, errors: errors.length > 0 ? errors : undefined };
 }
 
-export async function validateApiKeys(apiKeys: ApiKeys): Promise<ValidationResult> {
+export async function validateAndSaveApiKeys(apiKeys: ApiKeys) {
+  try {
+    const { validatedServices, errors } = await validateApiKeys(apiKeys);
+
+    if (errors) {
+      return { isValid: false, errors: errors };
+    }
+
+    const deepgramKeyToSave = validatedServices.includes("deepgram") ? apiKeys.deepgram : undefined;
+    const openaiKeyToSave = validatedServices.includes("openai") ? apiKeys.openai : undefined;
+    const cartesiaKeyToSave = validatedServices.includes("cartesia") ? apiKeys.cartesia : undefined;
+
+    const userId = await getUserId();
+
+    const apiKeysToSave: ApiKeys = {
+      deepgram: deepgramKeyToSave,
+      openai: openaiKeyToSave,
+      cartesia: cartesiaKeyToSave,
+    };
+
+    await saveApiKeys(apiKeysToSave, userId);
+
+    return { isValid: true, validatedServices };
+  } catch (error) {
+    console.error(error);
+    return { isValid: false, errors: ["Unknown error occurred."] };
+  }
+}
+
+type Service = "deepgram" | "openai" | "cartesia";
+interface ValidationResult {
+  service: Service;
+  isValid: boolean;
+  error?: string;
+}
+
+type ValidationPromise =
+  | Promise<{
+      service: Service;
+      isValid: boolean;
+      error?: string;
+    }>
+  | {
+      service: Service;
+      isValid: boolean;
+      error?: string;
+    };
+
+export async function validateApiKeys(apiKeys: ApiKeys) {
   const errors: string[] = [];
-  const validatedServices: string[] = [];
+  const validatedServices: Service[] = [];
 
   // Validate API keys
-  const validationPromises = [];
+  const validationPromises: ValidationPromise[] = [];
 
-  if (apiKeys.openai.trim()) {
+  if (typeof apiKeys.openai === "string") {
     validationPromises.push(
       validateOpenAIKey(apiKeys.openai).then((result) => ({
         service: "openai",
         ...result,
       }))
     );
-  } else {
-    validationPromises.push({
-      service: "openai",
-      isValid: false,
-      error: "OpenAI API Key Required",
-    });
   }
 
-  if (apiKeys.deepgram.trim()) {
+  if (typeof apiKeys.deepgram === "string") {
     validationPromises.push(
       validateDeepgramKey(apiKeys.deepgram).then((result) => ({
         service: "deepgram",
         ...result,
       }))
     );
-  } else {
-    validationPromises.push({
-      service: "deepgram",
-      isValid: false,
-      error: "Deepgram API Key Required",
-    });
   }
 
-  if (apiKeys.cartesia.trim()) {
+  if (typeof apiKeys.cartesia === "string" && apiKeys.cartesia !== "") {
     validationPromises.push(
       validateCartesiaKey(apiKeys.cartesia).then((result) => ({
         service: "cartesia",
@@ -135,7 +171,7 @@ export async function validateApiKeys(apiKeys: ApiKeys): Promise<ValidationResul
     );
   }
 
-  const validationResults = await Promise.all(validationPromises);
+  const validationResults: ValidationResult[] = await Promise.all(validationPromises);
 
   validationResults.forEach((result) => {
     if (result.isValid) {
@@ -147,18 +183,30 @@ export async function validateApiKeys(apiKeys: ApiKeys): Promise<ValidationResul
 
   const isValid = errors.length === 0;
 
-  const availableModels = {
-    openai: validatedServices.includes("openai"),
-    deepgram: validatedServices.includes("deepgram"),
-    cartesia: validatedServices.includes("cartesia"),
-  };
-
   return {
     isValid,
     errors: errors.length > 0 ? errors : undefined,
     validatedServices,
-    availableModels,
   };
+}
+
+export async function saveSelectedModels(selectedModels: SelectedModels) {
+  try {
+    const result = validateSelectedModels(selectedModels);
+
+    if (!result.isValid) {
+      return result;
+    }
+
+    const userId = await getUserId();
+
+    await updateSelectedModels(userId, selectedModels);
+
+    return result;
+  } catch (error) {
+    console.error(error);
+    return { isValid: false, errors: ["Unknown error occurred."] };
+  }
 }
 
 export async function saveConfiguration(data: SetupData): Promise<ConfigurationResult> {
@@ -166,7 +214,7 @@ export async function saveConfiguration(data: SetupData): Promise<ConfigurationR
   const errors: string[] = [];
 
   // Validate model selections
-  const modelValidation = validateModelSelection(selectedModels);
+  const modelValidation = validateSelectedModels(selectedModels);
   if (!modelValidation.isValid && modelValidation.errors) {
     errors.push(...modelValidation.errors);
   }
@@ -177,10 +225,6 @@ export async function saveConfiguration(data: SetupData): Promise<ConfigurationR
     const userId = await getUserId();
     await saveModelKeysAndPreferences(userId, apiKeys, selectedModels);
     console.log('Configuration "saved" successfully');
-    console.log(
-      "API Keys validated for:",
-      Object.keys(apiKeys).filter((key) => apiKeys[key as keyof ApiKeys].trim())
-    );
     console.log("Selected models:", selectedModels);
   }
 
@@ -188,4 +232,50 @@ export async function saveConfiguration(data: SetupData): Promise<ConfigurationR
     isValid,
     errors: errors.length > 0 ? errors : undefined,
   };
+}
+
+export async function validateConfig(userId?: string) {
+  try {
+    if (!userId) {
+      userId = await getUserId();
+      if (!userId) {
+        throw new Error("No user!");
+      }
+    }
+
+    return await validateConfigByUserId(userId);
+  } catch (error) {
+    console.error(error);
+    throw error;
+  }
+}
+
+export async function clearAllApiKeys(): Promise<{ success: boolean; error?: string }> {
+  try {
+    const userId = await getUserId();
+    if (!userId) {
+      return { success: false, error: "User not found" };
+    }
+
+    const client = await pool.connect();
+    try {
+      await client.query("BEGIN");
+
+      // Clear API keys by setting them to NULL
+      await client.query(`UPDATE stt SET key = NULL WHERE user_id = $1`, [userId]);
+      await client.query(`UPDATE llm SET key = NULL WHERE user_id = $1`, [userId]);
+      await client.query(`UPDATE tts SET key = NULL WHERE user_id = $1`, [userId]);
+
+      await client.query("COMMIT");
+      return { success: true };
+    } catch (error) {
+      await client.query("ROLLBACK");
+      throw error;
+    } finally {
+      client.release();
+    }
+  } catch (error) {
+    console.error("Error clearing API keys:", error);
+    return { success: false, error: "Failed to clear API keys" };
+  }
 }

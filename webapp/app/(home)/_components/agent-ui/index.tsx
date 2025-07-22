@@ -2,15 +2,19 @@
 
 import { AgentChatMessages } from "@/app/(home)/_components/agent-ui/AgentChatMessages";
 import { NoAgentNotification } from "@/app/(home)/_components/agent-ui/NoAgentNotification";
+import { ApiKeyValidity, SelectedModels } from "@/types/agent";
 import { RoomAudioRenderer, useVoiceAssistant } from "@livekit/components-react";
 import { AnimatePresence, motion } from "framer-motion";
+import { Dispatch, SetStateAction } from "react";
 import { AgentButton } from "./agent-button";
 import { AgentVisualizer } from "./agent-visualizer";
 import { ControlBar } from "./control-bar";
 
 function SimpleVoiceAssistant(props: {
   onConnectButtonClicked: () => void;
-  isValidConfig: boolean;
+  apiKeyValidity: ApiKeyValidity | null;
+  setApiKeyValidity: Dispatch<SetStateAction<ApiKeyValidity | null>>;
+  selectedModels: SelectedModels | null;
 }) {
   const { state: agentState } = useVoiceAssistant();
 
@@ -28,7 +32,9 @@ function SimpleVoiceAssistant(props: {
           >
             <AgentButton
               onConnectButtonClicked={props.onConnectButtonClicked}
-              isInitValidConfig={props.isValidConfig}
+              apiKeyValidity={props.apiKeyValidity}
+              setApiKeyValidity={props.setApiKeyValidity}
+              selectedModels={props.selectedModels}
             />
           </motion.div>
         ) : (

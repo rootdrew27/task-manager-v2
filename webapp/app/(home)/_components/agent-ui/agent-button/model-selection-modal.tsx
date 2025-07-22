@@ -13,7 +13,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { saveConfiguration } from "@/lib/agent/setup";
+import { saveSelectedModels } from "@/lib/agent/setup";
+import { SelectedModels } from "@/types/agent";
 import { useState } from "react";
 
 // Predetermined model options
@@ -36,37 +37,39 @@ const CARTESIA_MODELS = [
 ];
 
 export function ModelSelectionModal({
-  availableModels,
-  apiKeys,
+  withCartesia,
+  selectedModels,
   onComplete,
+  onClose,
 }: {
-  availableModels: { openai: boolean; deepgram: boolean; cartesia: boolean };
-  apiKeys: { deepgram: string; openai: string; cartesia: string };
-  onComplete: (isSuccess: boolean) => void;
+  withCartesia: boolean;
+  selectedModels: SelectedModels | null;
+  onComplete: () => void;
+  onClose: () => void;
 }) {
-  const [selectedOpenaiModel, setSelectedOpenaiModel] = useState<string>("");
-  const [selectedDeepgramModel, setSelectedDeepgramModel] = useState<string>("");
-  const [selectedCartesiaModel, setSelectedCartesiaModel] = useState<string>("");
+  const [selectedOpenaiModel, setSelectedOpenaiModel] = useState<string>(selectedModels?.llm ?? "");
+  const [selectedDeepgramModel, setSelectedDeepgramModel] = useState<string>(
+    selectedModels?.stt ?? ""
+  );
+  const [selectedCartesiaModel, setSelectedCartesiaModel] = useState<string>(
+    selectedModels?.tts ?? ""
+  );
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<string[]>([]);
-
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     setIsLoading(true);
     setErrors([]);
 
     try {
-      const result = await saveConfiguration({
-        apiKeys,
-        selectedModels: {
-          deepgram: selectedDeepgramModel,
-          openai: selectedOpenaiModel,
-          cartesia: availableModels.cartesia ? selectedCartesiaModel : undefined,
-        },
+      const result = await saveSelectedModels({
+        stt: selectedDeepgramModel,
+        llm: selectedOpenaiModel,
+        tts: selectedCartesiaModel,
       });
 
       if (result.isValid) {
-        onComplete(true);
+        onComplete();
       } else {
         setErrors(result.errors || ["Unknown validation error"]);
       }
@@ -78,8 +81,13 @@ export function ModelSelectionModal({
     }
   };
 
+  const handleClose = () => {
+    setErrors([]);
+    onClose();
+  };
+
   return (
-    <Dialog open={true}>
+    <Dialog open={true} onOpenChange={handleClose}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Select Models</DialogTitle>
@@ -99,43 +107,39 @@ export function ModelSelectionModal({
         )}
 
         <form onSubmit={handleSubmit} className="grid gap-4">
-          {availableModels.deepgram && (
-            <div className="pr-6">
-              <Label htmlFor="deepgram-model">Select Deepgram Model</Label>
-              <Select value={selectedDeepgramModel} onValueChange={setSelectedDeepgramModel}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a model" />
-                </SelectTrigger>
-                <SelectContent>
-                  {DEEPGRAM_MODELS.map((model) => (
-                    <SelectItem key={model.id} value={model.id}>
-                      {model.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
+          <div className="pr-6">
+            <Label htmlFor="deepgram-model">Select Deepgram Model</Label>
+            <Select value={selectedDeepgramModel} onValueChange={setSelectedDeepgramModel}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select a model" />
+              </SelectTrigger>
+              <SelectContent>
+                {DEEPGRAM_MODELS.map((model) => (
+                  <SelectItem key={model.id} value={model.id}>
+                    {model.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
 
-          {availableModels.openai && (
-            <div className="pr-6">
-              <Label htmlFor="openai-model">Select OpenAI Model</Label>
-              <Select value={selectedOpenaiModel} onValueChange={setSelectedOpenaiModel}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a model" />
-                </SelectTrigger>
-                <SelectContent>
-                  {OPENAI_MODELS.map((model) => (
-                    <SelectItem key={model.id} value={model.id}>
-                      {model.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
+          <div className="pr-6">
+            <Label htmlFor="openai-model">Select OpenAI Model</Label>
+            <Select value={selectedOpenaiModel} onValueChange={setSelectedOpenaiModel}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select a model" />
+              </SelectTrigger>
+              <SelectContent>
+                {OPENAI_MODELS.map((model) => (
+                  <SelectItem key={model.id} value={model.id}>
+                    {model.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
 
-          {availableModels.cartesia && (
+          {withCartesia && (
             <div className="pr-6">
               <Label htmlFor="cartesia-model">Select Cartesia Model</Label>
               <Select value={selectedCartesiaModel} onValueChange={setSelectedCartesiaModel}>

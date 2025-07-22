@@ -1,13 +1,40 @@
+import { ApiKeyValidity, SelectedModels } from "@/types/agent";
 import { motion } from "framer-motion";
-import React, { useState } from "react";
+import React, { Dispatch, SetStateAction, useState } from "react";
 import { RiChatVoiceAiLine } from "react-icons/ri";
 import { APIKeyValidationModal } from "./api-key-validation-modal";
+import { ModelSelectionModal } from "./model-selection-modal";
 
 export function AgentButton(props: {
   onConnectButtonClicked: () => void;
-  isInitValidConfig: boolean;
+  setApiKeyValidity: Dispatch<SetStateAction<ApiKeyValidity | null>>;
+  apiKeyValidity: ApiKeyValidity | null;
+  selectedModels: SelectedModels | null;
 }) {
-  const [isValidConfig, setIsValidConfig] = useState(props.isInitValidConfig);
+  const [showModals, setShowModals] = useState(false);
+  const [isValidConfig] = useState(
+    !!(
+      props.apiKeyValidity?.stt &&
+      props.apiKeyValidity.llm &&
+      props.selectedModels?.stt &&
+      props.selectedModels.llm
+    )
+  );
+
+  const areAPIKeysValid = (props.apiKeyValidity?.stt && props.apiKeyValidity.llm) ?? false;
+
+  const onCompleteConfig = () => {
+    // setIsValidConfig(true);
+    props.onConnectButtonClicked();
+  };
+
+  const onClose = () => {
+    setShowModals(false);
+  };
+
+  const handleOpenModal = () => {
+    setShowModals(true);
+  };
 
   if (isValidConfig) {
     return (
@@ -25,18 +52,34 @@ export function AgentButton(props: {
     );
   } else {
     return (
-      <APIKeyValidationModal setConfigStatus={setIsValidConfig}>
+      <>
         <motion.button
           initial={{ opacity: 0, scale: 0 }}
           animate={{ opacity: 1, scale: 1 }}
           whileHover={{ scale: 1.1 }}
           whileTap={{ scale: 0.8 }}
+          onClick={() => handleOpenModal()}
           transition={{ duration: 0.4, delay: 0 }}
           className="text-center uppercase bg-white flex items-center justify-center text-black rounded-full h-[50px] w-[50px]"
         >
           <RiChatVoiceAiLine className="h-6 w-6" />
         </motion.button>
-      </APIKeyValidationModal>
+        {showModals &&
+          (!areAPIKeysValid ? (
+            <APIKeyValidationModal
+              apiKeyValidity={props.apiKeyValidity}
+              setApiKeyValidity={props.setApiKeyValidity}
+              onClose={onClose}
+            />
+          ) : (
+            <ModelSelectionModal
+              withCartesia={!!props.apiKeyValidity?.tts}
+              selectedModels={props.selectedModels}
+              onComplete={onCompleteConfig}
+              onClose={onClose}
+            />
+          ))}
+      </>
     );
   }
 }

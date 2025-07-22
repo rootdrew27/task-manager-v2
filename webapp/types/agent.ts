@@ -1,29 +1,24 @@
 export interface ApiKeys {
-  deepgram: string;
-  openai: string;
-  cartesia: string;
+  deepgram?: string;
+  openai?: string;
+  cartesia?: string;
+}
+
+export interface ApiKeyValidity {
+  stt: boolean;
+  llm: boolean;
+  tts: boolean;
 }
 
 export interface SelectedModels {
-  deepgram: string;
-  openai: string;
-  cartesia?: string;
+  stt?: string;
+  llm?: string;
+  tts?: string | null;
 }
 
 export interface SetupData {
   apiKeys: ApiKeys;
   selectedModels: SelectedModels;
-}
-
-export interface ValidationResult {
-  isValid: boolean;
-  errors?: string[];
-  validatedServices?: string[];
-  availableModels?: {
-    openai: boolean;
-    deepgram: boolean;
-    cartesia: boolean;
-  };
 }
 
 export interface ConfigurationResult {

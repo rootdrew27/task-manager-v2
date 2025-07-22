@@ -4,26 +4,29 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { validateApiKeys } from "@/lib/agent/setup";
+import { validateAndSaveApiKeys } from "@/lib/agent/setup";
+import { ApiKeyValidity } from "@/types/agent";
 import { EyeIcon, EyeOffIcon } from "lucide-react";
-import { ChangeEvent, useState } from "react";
-import { ModelSelectionModal } from "./model-selection-modal";
+import { ChangeEvent, Dispatch, SetStateAction, useState } from "react";
+
+// NOTE: This modal requires that all API Keys be submitted, and all must be valid to continue (this behavior differs from the settings modal).
 
 export function APIKeyValidationModal({
-  children,
-  setConfigStatus,
+  setApiKeyValidity,
+  apiKeyValidity,
+  onClose,
 }: {
-  children: React.ReactNode;
-  setConfigStatus: React.Dispatch<React.SetStateAction<boolean>>;
+  setApiKeyValidity: Dispatch<SetStateAction<ApiKeyValidity | null>>;
+  apiKeyValidity: ApiKeyValidity | null;
+  onClose: () => void;
 }) {
   const [apiKeys, setApiKeys] = useState({
-    deepgram: "",
-    openai: "",
-    cartesia: "",
+    deepgram: apiKeyValidity?.stt ? undefined : "",
+    openai: apiKeyValidity?.llm ? undefined : "",
+    cartesia: apiKeyValidity?.tts ? undefined : "",
   });
   const [showPasswords, setShowPasswords] = useState({
     deepgram: false,
@@ -32,12 +35,6 @@ export function APIKeyValidationModal({
   });
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<string[]>([]);
-  const [showModelSelection, setShowModelSelection] = useState(false);
-  const [availableModels, setAvailableModels] = useState<{
-    openai: boolean;
-    deepgram: boolean;
-    cartesia: boolean;
-  }>();
 
   const handleChangeOpenAI = (event: ChangeEvent<HTMLInputElement>) => {
     const { value } = event.target;
@@ -63,12 +60,12 @@ export function APIKeyValidationModal({
     setIsLoading(true);
     setErrors([]);
 
-    // Validate required fields
+    // Validate required fields only if they're displayed (i.e. only if they're not already valid)
     const newErrors: string[] = [];
-    if (!apiKeys.deepgram.trim()) {
+    if (!apiKeyValidity?.stt && (!apiKeys.deepgram || !apiKeys.deepgram.trim())) {
       newErrors.push("Deepgram API Key is required");
     }
-    if (!apiKeys.openai.trim()) {
+    if (!apiKeyValidity?.llm && (!apiKeys.openai || !apiKeys.openai.trim())) {
       newErrors.push("OpenAI API Key is required");
     }
 
@@ -79,13 +76,13 @@ export function APIKeyValidationModal({
     }
 
     try {
-      const result = await validateApiKeys(apiKeys);
+      console.log("API Keys:", apiKeys);
+      const result = await validateAndSaveApiKeys(apiKeys);
 
-      if (result.isValid) {
-        setAvailableModels(result.availableModels);
-        setShowModelSelection(true);
-      } else {
+      if (!result.isValid) {
         setErrors(result.errors || ["Unknown validation error"]);
+      } else {
+        setApiKeyValidity({ stt: true, llm: true, tts: apiKeys.cartesia ? true : false });
       }
     } catch (error) {
       console.error(error);
@@ -95,19 +92,19 @@ export function APIKeyValidationModal({
     }
   };
 
-  const handleModelSelectionComplete = (isSuccess: boolean) => {
-    setConfigStatus(isSuccess);
+  const handleClose = () => {
+    setErrors([]); // clear errors when opening modal
+    onClose();
   };
 
   return (
     <>
-      <Dialog>
-        <DialogTrigger asChild>{children}</DialogTrigger>
+      <Dialog open={true} onOpenChange={handleClose}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Paste your API Keys</DialogTitle>
             <DialogDescription className="muted">
-              Note: Obtain your API Keys from the respective sites.
+              Note: Obtain each API Key from the respective provider&apos;s site.
             </DialogDescription>
           </DialogHeader>
 
@@ -122,80 +119,86 @@ export function APIKeyValidationModal({
           )}
 
           <form onSubmit={handleSubmit} className="grid gap-4">
-            <div className="grid gap-3">
-              <Label htmlFor="deepgram-api-key">Deepgram API Key *</Label>
-              <div className="relative">
-                <Input
-                  id="deepgram-api-key"
-                  name="deepgram-api-key"
-                  type={showPasswords.deepgram ? "text" : "password"}
-                  placeholder=""
-                  onChange={handleChangeDeepgram}
-                  required
-                  className="pr-10"
-                />
-                <button
-                  type="button"
-                  onClick={() => togglePasswordVisibility("deepgram")}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
-                >
-                  {showPasswords.deepgram ? (
-                    <EyeOffIcon className="h-4 w-4" />
-                  ) : (
-                    <EyeIcon className="h-4 w-4" />
-                  )}
-                </button>
+            {!apiKeyValidity?.stt && (
+              <div className="grid gap-3">
+                <Label htmlFor="deepgram-api-key">Deepgram API Key</Label>
+                <div className="relative">
+                  <Input
+                    id="deepgram-api-key"
+                    name="deepgram-api-key"
+                    type={showPasswords.deepgram ? "text" : "password"}
+                    placeholder=""
+                    onChange={handleChangeDeepgram}
+                    required
+                    className="pr-10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => togglePasswordVisibility("deepgram")}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                  >
+                    {showPasswords.deepgram ? (
+                      <EyeOffIcon className="h-4 w-4" />
+                    ) : (
+                      <EyeIcon className="h-4 w-4" />
+                    )}
+                  </button>
+                </div>
               </div>
-            </div>
-            <div className="grid gap-3">
-              <Label htmlFor="openai-api-key">OpenAI API Key *</Label>
-              <div className="relative">
-                <Input
-                  id="openai-api-key"
-                  name="openai-api-key"
-                  type={showPasswords.openai ? "text" : "password"}
-                  placeholder=""
-                  onChange={handleChangeOpenAI}
-                  required
-                  className="pr-10"
-                />
-                <button
-                  type="button"
-                  onClick={() => togglePasswordVisibility("openai")}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
-                >
-                  {showPasswords.openai ? (
-                    <EyeOffIcon className="h-4 w-4" />
-                  ) : (
-                    <EyeIcon className="h-4 w-4" />
-                  )}
-                </button>
+            )}
+            {!apiKeyValidity?.llm && (
+              <div className="grid gap-3">
+                <Label htmlFor="openai-api-key">OpenAI API Key</Label>
+                <div className="relative">
+                  <Input
+                    id="openai-api-key"
+                    name="openai-api-key"
+                    type={showPasswords.openai ? "text" : "password"}
+                    placeholder=""
+                    onChange={handleChangeOpenAI}
+                    required
+                    className="pr-10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => togglePasswordVisibility("openai")}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                  >
+                    {showPasswords.openai ? (
+                      <EyeOffIcon className="h-4 w-4" />
+                    ) : (
+                      <EyeIcon className="h-4 w-4" />
+                    )}
+                  </button>
+                </div>
               </div>
-            </div>
-            <div className="grid gap-3">
-              <Label htmlFor="cartesia-api-key">Cartesia API Key (Optional)</Label>
-              <div className="relative">
-                <Input
-                  id="cartesia-api-key"
-                  name="cartesia-api-key"
-                  type={showPasswords.cartesia ? "text" : "password"}
-                  placeholder=""
-                  onChange={handleChangeCartesia}
-                  className="pr-10"
-                />
-                <button
-                  type="button"
-                  onClick={() => togglePasswordVisibility("cartesia")}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
-                >
-                  {showPasswords.cartesia ? (
-                    <EyeOffIcon className="h-4 w-4" />
-                  ) : (
-                    <EyeIcon className="h-4 w-4" />
-                  )}
-                </button>
+            )}
+            {!apiKeyValidity?.tts && (
+              <div className="grid gap-3">
+                <Label htmlFor="cartesia-api-key">Cartesia API Key (Optional)</Label>
+                <div className="relative">
+                  <Input
+                    id="cartesia-api-key"
+                    name="cartesia-api-key"
+                    type={showPasswords.cartesia ? "text" : "password"}
+                    placeholder=""
+                    onChange={handleChangeCartesia}
+                    className="pr-10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => togglePasswordVisibility("cartesia")}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                  >
+                    {showPasswords.cartesia ? (
+                      <EyeOffIcon className="h-4 w-4" />
+                    ) : (
+                      <EyeIcon className="h-4 w-4" />
+                    )}
+                  </button>
+                </div>
               </div>
-            </div>
+            )}
             <button
               type="submit"
               disabled={isLoading}
@@ -206,14 +209,6 @@ export function APIKeyValidationModal({
           </form>
         </DialogContent>
       </Dialog>
-
-      {showModelSelection && availableModels && (
-        <ModelSelectionModal
-          availableModels={availableModels}
-          apiKeys={apiKeys}
-          onComplete={handleModelSelectionComplete}
-        />
-      )}
     </>
   );
 }

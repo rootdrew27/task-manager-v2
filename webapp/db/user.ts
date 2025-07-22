@@ -1,6 +1,5 @@
 "use server";
 
-import { cookies } from "next/headers";
 import { pool } from "./connect";
 
 export async function createGuestUser() {

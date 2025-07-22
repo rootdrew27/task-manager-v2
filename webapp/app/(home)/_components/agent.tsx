@@ -3,22 +3,24 @@
 import type { ConnectionDetails } from "@/app/api/connection-details/route";
 import { Settings } from "@/components/Settings";
 import { useTasks } from "@/hooks/useTasks";
-import { SelectedModels } from "@/types/agent";
+import { ApiKeyValidity, SelectedModels } from "@/types/agent";
 import { RoomContext } from "@livekit/components-react";
 import { Room } from "livekit-client";
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useState } from "react";
 // import { GiConsoleController } from "react-icons/gi";
 import { SimpleVoiceAssistant } from "./agent-ui";
 import { TaskManager } from "./task-manager";
 
-export const Agent = ({
-  initTasks,
-  selectedModels,
-}: {
+interface AgentProps {
   initTasks: TaskInfo[];
+  apiKeyValidity: ApiKeyValidity | null;
   selectedModels: SelectedModels | null;
-}) => {
+}
+
+export const Agent = (props: AgentProps) => {
   const room = useMemo(() => new Room(), []);
+  const [apiKeyValidity, setApiKeyValidity] = useState(props.apiKeyValidity);
+  const [selectedModels, setSelectedModels] = useState(props.selectedModels);
 
   const onConnectButtonClicked = useCallback(async () => {
     const url = new URL(
@@ -33,7 +35,7 @@ export const Agent = ({
     await room.localParticipant.setMicrophoneEnabled(true);
   }, [room]);
 
-  // TODO: Consider moving the following into its own hook file
+  const initTasks = props.initTasks;
   const { tasks } = useTasks({ room, initTasks });
 
   return (
@@ -42,14 +44,21 @@ export const Agent = ({
         <div className="lk-room-container flex flex-1 items-center justify-center mx-auto">
           <SimpleVoiceAssistant
             onConnectButtonClicked={onConnectButtonClicked}
-            isValidConfig={!!selectedModels}
+            apiKeyValidity={apiKeyValidity}
+            setApiKeyValidity={setApiKeyValidity}
+            selectedModels={selectedModels}
           />
         </div>
         <div className="flex-1 flex flex-col justify-center p-2">
           <TaskManager tasks={tasks} />
         </div>
         <div className="flex-1 flex flex-col justify-center items-center p-2">
-          <Settings />
+          <Settings
+            apiKeyValidity={apiKeyValidity}
+            setApiKeyValidity={setApiKeyValidity}
+            selectedModels={selectedModels}
+            setSelectedModels={setSelectedModels}
+          />
         </div>
       </RoomContext.Provider>
     </div>
