@@ -1,6 +1,7 @@
 "use client";
 
 import type { ConnectionDetails } from "@/app/api/connection-details/route";
+import { MicControl } from "@/components/mic-control";
 import { Settings } from "@/components/settings";
 import { useTasks } from "@/hooks/useTasks";
 import { ApiKeyValidity, SelectedModels } from "@/types/agent";
@@ -10,6 +11,7 @@ import { useCallback, useMemo, useState } from "react";
 // import { GiConsoleController } from "react-icons/gi";
 import { SimpleVoiceAssistant } from "./agent-ui";
 import { TaskManager } from "./task-manager";
+import { TranscriptionBox } from "./transcription-box";
 
 interface AgentProps {
   initTasks: TaskInfo[];
@@ -39,28 +41,32 @@ export const Agent = (props: AgentProps) => {
   const { tasks } = useTasks({ room, initTasks });
 
   return (
-    <div className="flex flex-col h-full w-full items-center lg:flex-row lg:space-y-0 lg:space-x-4 lg:items-stretch">
-      <RoomContext.Provider value={room}>
-        <div className="lk-room-container flex flex-1 items-center justify-center mx-auto">
-          <SimpleVoiceAssistant
-            onConnectButtonClicked={onConnectButtonClicked}
-            apiKeyValidity={apiKeyValidity}
-            setApiKeyValidity={setApiKeyValidity}
-            selectedModels={selectedModels}
-          />
-        </div>
-        <div className="flex-1 flex flex-col justify-center p-2">
+    <RoomContext.Provider value={room}>
+      <div className="h-full w-full flex flex-col items-center justify-between relative">
+        <div className="flex justify-center w-full p-2 min-h-[80%] max-h-[80%] overflow-y-auto">
           <TaskManager tasks={tasks} />
         </div>
-        <div className="flex-1 flex flex-col justify-center items-center p-2">
-          <Settings
-            apiKeyValidity={apiKeyValidity}
-            setApiKeyValidity={setApiKeyValidity}
-            selectedModels={selectedModels}
-            setSelectedModels={setSelectedModels}
-          />
+        <div className="flex justify-between w-10/12">
+          <div className="flex gap-x-4 px-4 py-4 bg-slate-800 rounded-full">
+            <SimpleVoiceAssistant
+              onConnectButtonClicked={onConnectButtonClicked}
+              apiKeyValidity={apiKeyValidity}
+              setApiKeyValidity={setApiKeyValidity}
+              selectedModels={selectedModels}
+            />
+            <MicControl />
+          </div>
+          <div className="px-4 py-4 bg-slate-800 rounded-full">
+            <Settings
+              apiKeyValidity={apiKeyValidity}
+              setApiKeyValidity={setApiKeyValidity}
+              selectedModels={selectedModels}
+              setSelectedModels={setSelectedModels}
+            />
+          </div>
         </div>
-      </RoomContext.Provider>
-    </div>
+        <TranscriptionBox />
+      </div>
+    </RoomContext.Provider>
   );
 };

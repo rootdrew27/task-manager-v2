@@ -141,8 +141,6 @@ export async function updateSelectedModels(userId: string, newModelSelections: S
       }
     }
 
-    console.log(newTtsModel);
-
     if (newTtsModel || newTtsModel === null) {
       if (hasTts) {
         // Update TTS model
@@ -198,8 +196,6 @@ export async function getSelectedModelsAndValidatedApiKeys(userId: string) {
       openai: llmKey,
       cartesia: ttsKey ?? "",
     });
-
-    console.log(validateApiKeys);
 
     const isSttApiKeyValid = validatedServices.includes("deepgram");
     const isLlmApiKeyValid = validatedServices.includes("openai");

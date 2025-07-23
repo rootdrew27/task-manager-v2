@@ -1,7 +1,7 @@
 import { ApiKeyValidity, SelectedModels } from "@/types/agent";
-import { motion } from "framer-motion";
+import { motion } from "motion/react";
 import { useState } from "react";
-import { BsGearFill } from "react-icons/bs";
+import { GoGear } from "react-icons/go";
 import { SettingsModal } from "./settings-modal";
 
 interface SettingsProps {
@@ -27,13 +27,19 @@ export function Settings(props: SettingsProps) {
       <motion.button
         initial={{ opacity: 0, scale: 0 }}
         animate={{ opacity: 1, scale: 1 }}
-        whileHover={{ scale: 1.1 }}
-        whileTap={{ scale: 0.8 }}
-        transition={{ duration: 0.4, delay: 0 }}
+        whileHover={{ scale: 1.05 }}
+        transition={{ type: "spring", stiffness: 400, damping: 17 }}
+        whileTap={{ scale: 0.98 }}
         onClick={handleClick}
-        className="bg-white rounded-full w-[100px] h-[100px] flex items-center justify-center hover:cursor-pointer"
+        className="bg-white rounded-full w-[50px] h-[50px] flex items-center justify-center hover:cursor-pointer hover:bg-gray-50"
       >
-        <BsGearFill className="text-black h-7 w-7" />
+        <motion.span
+          className="inline-block"
+          whileHover={{ rotate: 180 }}
+          transition={{ type: "spring", stiffness: 200, damping: 15 }}
+        >
+          <GoGear className="text-gray-600 h-6 w-6" strokeWidth={0.3} />
+        </motion.span>
       </motion.button>
 
       {isModalOpen && (

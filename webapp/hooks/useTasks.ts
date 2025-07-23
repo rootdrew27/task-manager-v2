@@ -14,7 +14,6 @@ export function useTasks(props: useTasksProps) {
     const handleUpdatedRoomMetadata = () => {
       const metadata = props.room?.metadata;
       if (metadata) {
-        console.log(metadata);
         const { update_type, data, updated_at } = JSON.parse(metadata);
         console.log(`Updated metadata with timestamp: ${updated_at}`);
 
