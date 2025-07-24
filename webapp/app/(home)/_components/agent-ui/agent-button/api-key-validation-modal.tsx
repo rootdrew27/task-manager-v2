@@ -1,11 +1,5 @@
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { validateAndSaveApiKeys } from "@/lib/agent/setup";
@@ -100,16 +94,15 @@ export function APIKeyValidationModal({
   return (
     <>
       <Dialog open={true} onOpenChange={handleClose}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Paste your API Keys</DialogTitle>
-            <DialogDescription className="muted">
-              Note: Obtain each API Key from the respective provider&apos;s site.
-            </DialogDescription>
+        <DialogContent className="bg-secondary border-primary border-2 shadow-xl">
+          <DialogHeader className="border-b border-white/90 pb-2">
+            <DialogTitle className="text-primary text-xl font-semibold">
+              Paste your API Keys
+            </DialogTitle>
           </DialogHeader>
 
           {errors.length > 0 && (
-            <div className="bg-red-50 border border-red-200 rounded-md p-3">
+            <div className="bg-red-50 border border-red-200 rounded-md p-2 mb-2 mx-auto w-full">
               <ul className="text-red-700 text-sm space-y-1">
                 {errors.map((error, index) => (
                   <li key={index}>• {error}</li>
@@ -121,7 +114,9 @@ export function APIKeyValidationModal({
           <form onSubmit={handleSubmit} className="grid gap-4">
             {!apiKeyValidity?.stt && (
               <div className="grid gap-3">
-                <Label htmlFor="deepgram-api-key">Deepgram API Key</Label>
+                <Label htmlFor="deepgram-api-key" className="text-primary-text font-medium">
+                  Deepgram API Key
+                </Label>
                 <div className="relative">
                   <Input
                     id="deepgram-api-key"
@@ -130,7 +125,7 @@ export function APIKeyValidationModal({
                     placeholder=""
                     onChange={handleChangeDeepgram}
                     required
-                    className="pr-10"
+                    className="pr-10 bg-primary text-secondary"
                   />
                   <button
                     type="button"
@@ -148,7 +143,9 @@ export function APIKeyValidationModal({
             )}
             {!apiKeyValidity?.llm && (
               <div className="grid gap-3">
-                <Label htmlFor="openai-api-key">OpenAI API Key</Label>
+                <Label htmlFor="openai-api-key" className="text-primary-text font-medium">
+                  OpenAI API Key
+                </Label>
                 <div className="relative">
                   <Input
                     id="openai-api-key"
@@ -157,7 +154,7 @@ export function APIKeyValidationModal({
                     placeholder=""
                     onChange={handleChangeOpenAI}
                     required
-                    className="pr-10"
+                    className="pr-10 bg-primary text-secondary"
                   />
                   <button
                     type="button"
@@ -175,7 +172,9 @@ export function APIKeyValidationModal({
             )}
             {!apiKeyValidity?.tts && (
               <div className="grid gap-3">
-                <Label htmlFor="cartesia-api-key">Cartesia API Key (Optional)</Label>
+                <Label htmlFor="cartesia-api-key" className="text-primary-text font-medium">
+                  Cartesia API Key (Optional)
+                </Label>
                 <div className="relative">
                   <Input
                     id="cartesia-api-key"
@@ -183,7 +182,7 @@ export function APIKeyValidationModal({
                     type={showPasswords.cartesia ? "text" : "password"}
                     placeholder=""
                     onChange={handleChangeCartesia}
-                    className="pr-10"
+                    className="pr-10 bg-primary text-secondary"
                   />
                   <button
                     type="button"
@@ -199,11 +198,16 @@ export function APIKeyValidationModal({
                 </div>
               </div>
             )}
+            <div>
+              <p className="pb-1 text-muted-dark text-xs">
+                Note: Obtain each API Key from the respective provider&apos;s site.
+              </p>
+            </div>
             <div className="w-full">
               <Button
                 type="submit"
                 disabled={isLoading}
-                className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed float-end text-white font-medium transition-colors h-6"
+                className="bg-primary hover:bg-primary/90 disabled:bg-battleship-gray disabled:cursor-not-allowed float-end text-secondary font-medium transition-colors h-8"
               >
                 {isLoading ? "Validating..." : "Validate API Keys"}
               </Button>

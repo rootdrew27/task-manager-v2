@@ -38,38 +38,62 @@ export function AgentButton(props: {
 
   if (isValidConfig) {
     return (
-      <motion.button
-        initial={{ opacity: 0, scale: 0 }}
-        animate={{ opacity: 1, scale: 1 }}
-        whileTap={{ scale: 0.8 }}
-        whileHover={{ scale: 1.05 }}
-        transition={{ type: "spring", stiffness: 400, damping: 17, duration: 0.5 }}
-        className="text-center uppercase bg-white flex items-center justify-center text-black rounded-full h-[50px] w-[50px]"
-        onClick={() => props.onConnectButtonClicked()}
+      <motion.div
+        whileTap={{ scale: 0.8, transition: { duration: 0.1, ease: "easeOut" } }}
+        style={{
+          minWidth: "54px", // Maintains hit area (50px button + 4px padding)
+          minHeight: "54px",
+          touchAction: "manipulation", // Prevents zoom on mobile
+        }}
+        onTapStart={() => props.onConnectButtonClicked()}
+        className="bg-transparent rounded-full hover:cursor-auto p-2"
+        tabIndex={-1}
       >
-        <motion.span className="inline-block">
-          <HiOutlineSparkles />
-        </motion.span>
+        <motion.button
+          whileHover={{
+            scale: 1.1,
+            transition: { duration: 0.2 },
+          }}
+          style={{
+            touchAction: "manipulation", // Prevents zoom on mobile
+          }}
+          className="control-button flex items-center justify-center rounded-full hover:cursor-pointer hover:bg-secondary/10"
+        >
+          <HiOutlineSparkles className="h-5 w-5 text-oxford-blue" />
+        </motion.button>
         {/* <RiChatVoiceAiLine className="text-gray-600 h-6 w-6" /> */}
-      </motion.button>
+      </motion.div>
     );
   } else {
     return (
       <>
-        <motion.button
-          initial={{ opacity: 0, scale: 0 }}
-          animate={{ opacity: 1, scale: 1 }}
-          whileHover={{ scale: 1.1 }}
-          whileTap={{ scale: 0.8 }}
-          onClick={() => handleOpenModal()}
-          transition={{ duration: 0.4, delay: 0 }}
-          className="text-center uppercase bg-white flex items-center justify-center rounded-full h-[50px] w-[50px]"
+        <motion.div
+          whileTap={{
+            scale: 0.8,
+            transition: { duration: 0.1, ease: "easeOut" },
+          }}
+          style={{
+            minWidth: "54px", // Maintains hit area (50px button + 4px padding)
+            minHeight: "54px",
+            touchAction: "manipulation", // Prevents zoom on mobile
+          }}
+          onClick={handleOpenModal}
+          className="bg-transparent rounded-full"
         >
-          <motion.span className="inline-block">
+          <motion.button
+            whileHover={{
+              scale: 1.1,
+              transition: { duration: 0.2 },
+            }}
+            style={{
+              touchAction: "manipulation", // Prevents zoom on mobile
+            }}
+            className="bg-primary flex items-center justify-center rounded-full control-button shadow-black/10 shadow-sm hover:cursor-pointer"
+          >
             {/* <RiChatVoiceAiLine className="text-gray-600 h-6 w-6" /> */}
             <HiOutlineSparkles className="h-5 w-5 text-gray-600" />
-          </motion.span>
-        </motion.button>
+          </motion.button>
+        </motion.div>
         {showModals &&
           (!areAPIKeysValid ? (
             <APIKeyValidationModal

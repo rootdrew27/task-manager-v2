@@ -89,16 +89,16 @@ export function ModelSelectionModal({
 
   return (
     <Dialog open={true} onOpenChange={handleClose}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Select Models</DialogTitle>
-          <DialogDescription className="muted">
+      <DialogContent className="bg-secondary border-primary border-2 shadow-xl">
+        <DialogHeader className="border-b border-white/90 pb-2 w-11/12">
+          <DialogTitle className="text-primary text-xl font-semibold">Select Models</DialogTitle>
+          <DialogDescription className="text-secondary-text">
             Choose the models you want to use for each service.
           </DialogDescription>
         </DialogHeader>
 
         {errors.length > 0 && (
-          <div className="bg-red-50 border border-red-200 rounded-md p-3">
+          <div className="bg-red-50 border border-red-200 rounded-md p-2 mb-2 mx-auto">
             <ul className="text-red-700 text-sm space-y-1">
               {errors.map((error, index) => (
                 <li key={index}>• {error}</li>
@@ -109,12 +109,14 @@ export function ModelSelectionModal({
 
         <form onSubmit={handleSubmit} className="grid gap-4">
           <div className="pr-6">
-            <Label htmlFor="deepgram-model">Select Deepgram Model</Label>
+            <Label htmlFor="deepgram-model" className="text-oxford-blue font-medium">
+              Select Deepgram Model
+            </Label>
             <Select value={selectedDeepgramModel} onValueChange={setSelectedDeepgramModel}>
-              <SelectTrigger>
+              <SelectTrigger className="bg-primary text-secondary">
                 <SelectValue placeholder="Select a model" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="bg-primary border-secondary text-secondary">
                 {DEEPGRAM_MODELS.map((model) => (
                   <SelectItem key={model.id} value={model.id}>
                     {model.name}
@@ -125,12 +127,14 @@ export function ModelSelectionModal({
           </div>
 
           <div className="pr-6">
-            <Label htmlFor="openai-model">Select OpenAI Model</Label>
+            <Label htmlFor="openai-model" className="text-oxford-blue font-medium">
+              Select OpenAI Model
+            </Label>
             <Select value={selectedOpenaiModel} onValueChange={setSelectedOpenaiModel}>
-              <SelectTrigger>
+              <SelectTrigger className="bg-primary text-secondary">
                 <SelectValue placeholder="Select a model" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="bg-primary border-secondary text-secondary">
                 {OPENAI_MODELS.map((model) => (
                   <SelectItem key={model.id} value={model.id}>
                     {model.name}
@@ -142,12 +146,14 @@ export function ModelSelectionModal({
 
           {withCartesia && (
             <div className="pr-6">
-              <Label htmlFor="cartesia-model">Select Cartesia Model</Label>
+              <Label htmlFor="cartesia-model" className="text-oxford-blue font-medium">
+                Select Cartesia Model
+              </Label>
               <Select value={selectedCartesiaModel} onValueChange={setSelectedCartesiaModel}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select a model" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="bg-primary border-secondary text-secondary">
                   {CARTESIA_MODELS.map((model) => (
                     <SelectItem key={model.id} value={model.id}>
                       {model.name}
@@ -162,7 +168,7 @@ export function ModelSelectionModal({
             <Button
               type="submit"
               disabled={isLoading}
-              className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed float-end text-white font-medium h-6 transition-colors"
+              className="bg-primary hover:bg-primary/90 disabled:bg-battleship-gray disabled:cursor-not-allowed float-end text-secondary font-medium h-8 transition-colors"
             >
               Start
             </Button>

@@ -9,6 +9,7 @@ import {
 import { updateUserConfiguration } from "@/lib/agent/user-config";
 import { SelectedModels } from "@/types/agent";
 import { useEffect, useState } from "react";
+import { Button } from "../ui/button";
 
 const OPENAI_MODELS = [
   { id: "gpt-4o", name: "GPT-4o" },
@@ -86,7 +87,7 @@ export function ModelSelection({ selectedModels, setSelectedModels }: ModelSelec
   return (
     <>
       {errors.length > 0 && (
-        <div className="bg-red-50 border border-red-200 rounded-md p-3 mb-2">
+        <div className="bg-red-50 border border-red-200 rounded-md p-2 mx-auto mb-2">
           <ul className="text-red-700 text-sm space-y-1">
             {errors.map((error, index) => (
               <li key={index}>• {error}</li>
@@ -96,7 +97,7 @@ export function ModelSelection({ selectedModels, setSelectedModels }: ModelSelec
       )}
 
       {successMessages.length > 0 && (
-        <div className="bg-green-50 border border-green-200 rounded-md p-3 mb-2">
+        <div className="bg-green-50 border border-green-200 rounded-md p-2 mr-auto w-[95%] mb-2">
           <ul className="text-green-700 text-sm space-y-1">
             {successMessages.map((msg, index) => (
               <li key={index}>• {msg}</li>
@@ -114,12 +115,18 @@ export function ModelSelection({ selectedModels, setSelectedModels }: ModelSelec
               setLocalSelectedModels({ ...localSelectedModels, stt: value })
             }
           >
-            <SelectTrigger>
+            <SelectTrigger className="bg-primary text-secondary">
               <SelectValue placeholder="Select a Deepgram model" />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="bg-primary border-secondary text-secondary">
               {DEEPGRAM_MODELS.map((model) => (
-                <SelectItem key={model.id} value={model.id}>
+                <SelectItem
+                  key={model.id}
+                  value={model.id}
+                  className={
+                    localSelectedModels.stt === model.id ? "bg-secondary/30 text-oxford-blue" : ""
+                  }
+                >
                   {model.name}
                 </SelectItem>
               ))}
@@ -135,12 +142,18 @@ export function ModelSelection({ selectedModels, setSelectedModels }: ModelSelec
               setLocalSelectedModels({ ...localSelectedModels, llm: value })
             }
           >
-            <SelectTrigger>
+            <SelectTrigger className="bg-primary text-secondary">
               <SelectValue placeholder="Select an OpenAI model" />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="bg-primary border-secondary text-secondary">
               {OPENAI_MODELS.map((model) => (
-                <SelectItem key={model.id} value={model.id}>
+                <SelectItem
+                  key={model.id}
+                  value={model.id}
+                  className={
+                    localSelectedModels.llm === model.id ? "bg-secondary/30 text-oxford-blue" : ""
+                  }
+                >
                   {model.name}
                 </SelectItem>
               ))}
@@ -159,13 +172,28 @@ export function ModelSelection({ selectedModels, setSelectedModels }: ModelSelec
               })
             }
           >
-            <SelectTrigger>
+            <SelectTrigger className="bg-primary text-secondary">
               <SelectValue placeholder="Select a Cartesia model or none" />
             </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="none">None</SelectItem>
+            <SelectContent className="bg-primary border-secondary text-secondary">
+              <SelectItem
+                value="none"
+                className={
+                  localSelectedModels.tts === null || localSelectedModels.tts === "none"
+                    ? "bg-secondary/30 text-oxford-blue"
+                    : ""
+                }
+              >
+                None
+              </SelectItem>
               {CARTESIA_MODELS.map((model) => (
-                <SelectItem key={model.id} value={model.id}>
+                <SelectItem
+                  key={model.id}
+                  value={model.id}
+                  className={
+                    localSelectedModels.tts === model.id ? "bg-secondary/30 text-oxford-blue" : ""
+                  }
+                >
                   {model.name}
                 </SelectItem>
               ))}
@@ -174,13 +202,13 @@ export function ModelSelection({ selectedModels, setSelectedModels }: ModelSelec
         </div>
 
         <div className="flex gap-2 justify-end">
-          <button
+          <Button
             type="submit"
             disabled={isLoading}
-            className="px-4 py-2 text-sm font-medium bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-md transition-colors"
+            className="bg-primary hover:bg-primary/90 disabled:bg-battleship-gray disabled:cursor-not-allowed float-end text-secondary font-medium transition-colors h-8"
           >
             Save Selections
-          </button>
+          </Button>
         </div>
       </form>
     </>

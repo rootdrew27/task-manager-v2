@@ -1,42 +1,125 @@
 import { AccordionContentProps, AccordionTriggerProps } from "@radix-ui/react-accordion";
 import { ChevronDownIcon } from "@radix-ui/react-icons";
 import classNames from "classnames";
-import { motion } from "framer-motion";
+import { Variants, motion } from "framer-motion";
 import { Accordion } from "radix-ui";
 import * as React from "react";
 import { CiCircleCheck } from "react-icons/ci";
 
+// Animation variants for smooth, optimized animations
+const taskVariants: Variants = {
+  hidden: {
+    opacity: 0,
+    scale: 0.8,
+    y: 20,
+  },
+  visible: {
+    opacity: 1,
+    scale: 1,
+    y: 0,
+    transition: {
+      type: "spring",
+      stiffness: 300,
+      damping: 25,
+      bounce: 0.1,
+      duration: 0.5,
+    },
+  },
+  exit: {
+    opacity: 0,
+    scale: 0.95,
+    y: -10,
+    transition: {
+      type: "tween",
+      duration: 0.2,
+      ease: "easeOut",
+    },
+  },
+  hover: {
+    scale: 1.02,
+    y: -2,
+    transition: {
+      type: "spring",
+      stiffness: 400,
+      damping: 25,
+      bounce: 0,
+    },
+  },
+};
+
+const checkIconVariants: Variants = {
+  hidden: {
+    opacity: 0,
+    scale: 0.3,
+    rotate: -180,
+  },
+  visible: {
+    opacity: 1,
+    scale: 1,
+    rotate: 0,
+    transition: {
+      type: "spring",
+      stiffness: 400,
+      damping: 20,
+      delay: 0.1,
+    },
+  },
+  exit: {
+    opacity: 0,
+    scale: 0.3,
+    rotate: 180,
+    transition: {
+      type: "tween",
+      duration: 0.15,
+    },
+  },
+};
+
 function Task(props: { info: TaskInfo; delay: number }) {
   return (
     <motion.div
-      initial={{ opacity: 0, scale: 0 }}
-      animate={{ opacity: 1, scale: 1 }}
-      exit={{ opacity: 0, scale: 0 }}
+      variants={taskVariants}
+      initial="hidden"
+      animate="visible"
+      exit="exit"
+      whileHover="hover"
       transition={{
-        duration: 0.6,
         delay: props.delay,
-        scale: { type: "spring", visualDuration: 0.4, bounce: 0.6 },
-        ease: [0.09, 0.5, 0.245, 1.055],
+        type: "spring",
+        stiffness: 300,
+        damping: 25,
+        bounce: 0.1,
+        duration: 0.5,
+      }}
+      style={{
+        willChange: "transform, opacity",
       }}
       key={props.info.name}
+      className="w-full"
     >
-      <Accordion.Item value={props.info.name} className="AccordionItem">
+      <Accordion.Item value={props.info.name} className="AccordionItem bg-primary">
         <AccordionTrigger className="">
-          <div className="flex gap-x-2">
-            <p>{props.info.name}</p>
+          <div className="flex gap-x-2 items-center">
+            <p className="font-medium">{props.info.name}</p>
             <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.2 }}
+              variants={checkIconVariants}
+              initial="hidden"
+              animate={props.info.is_complete ? "visible" : "hidden"}
+              style={{
+                willChange: "transform, opacity",
+              }}
             >
-              {props.info.is_complete && <CiCircleCheck className="h-6 w-6" />}
+              {props.info.is_complete && <CiCircleCheck className="h-6 w-6 text-green-600" />}
             </motion.div>
           </div>
         </AccordionTrigger>
         <AccordionContent>
-          <div>Deadline: {props.info.deadline?.toString()}</div>
-          <div>Description: {props.info.description}</div>
+          <div className="mb-2">
+            <span className="font-medium">Deadline:</span> {props.info.deadline?.toString()}
+          </div>
+          <div>
+            <span className="font-medium">Description:</span> {props.info.description}
+          </div>
         </AccordionContent>
       </Accordion.Item>
     </motion.div>

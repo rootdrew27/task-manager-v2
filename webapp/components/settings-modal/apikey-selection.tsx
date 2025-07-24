@@ -3,8 +3,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { clearAllApiKeys, validateAndSaveApiKeys } from "@/lib/agent/setup";
 import { ApiKeyValidity } from "@/types/agent";
-import { CheckIcon, EyeIcon, EyeOffIcon, TrashIcon } from "lucide-react";
+import { EyeIcon, EyeOffIcon, TrashIcon } from "lucide-react";
 import { ChangeEvent, useState } from "react";
+import { IoCheckmarkCircleSharp } from "react-icons/io5";
 
 interface APIKeySelectionProps {
   apiKeyValidity: ApiKeyValidity | null;
@@ -114,7 +115,7 @@ export function APIKeySelection({ apiKeyValidity, setApiKeyValidity }: APIKeySel
   return (
     <>
       {errors.length > 0 && (
-        <div className="bg-red-50 border border-red-200 rounded-md p-3 mb-2">
+        <div className="bg-red-50 border border-red-200 rounded-md p-2 mb-2 mx-auto">
           <ul className="text-red-700 text-sm space-y-1">
             {errors.map((error, index) => (
               <li key={index}>• {error}</li>
@@ -124,7 +125,7 @@ export function APIKeySelection({ apiKeyValidity, setApiKeyValidity }: APIKeySel
       )}
 
       {successMessages.length > 0 && (
-        <div className="bg-green-50 border border-green-200 rounded-md p-3 mb-2">
+        <div className="bg-green-50 border border-green-200 rounded-md p-2 mb-2 mx-auto">
           <ul className="text-green-700 text-sm space-y-1">
             {successMessages.map((msg, index) => (
               <li key={index}>• {msg}</li>
@@ -137,7 +138,7 @@ export function APIKeySelection({ apiKeyValidity, setApiKeyValidity }: APIKeySel
         <div className="grid gap-3">
           <div className="flex items-center gap-2">
             <Label htmlFor="deepgram-api-key">Deepgram API Key</Label>
-            {apiKeyValidity?.stt && <CheckIcon className="h-4 w-4 text-green-600" />}
+            {apiKeyValidity?.stt && <IoCheckmarkCircleSharp className="h-4 w-4 text-white" />}
           </div>
           <div className="relative">
             <Input
@@ -147,7 +148,7 @@ export function APIKeySelection({ apiKeyValidity, setApiKeyValidity }: APIKeySel
               placeholder=""
               value={apiKeys.deepgram || ""}
               onChange={handleChangeDeepgram}
-              className="pr-10"
+              className="pr-10 bg-primary text-secondary"
             />
             <button
               type="button"
@@ -165,7 +166,7 @@ export function APIKeySelection({ apiKeyValidity, setApiKeyValidity }: APIKeySel
         <div className="grid gap-3">
           <div className="flex items-center gap-2">
             <Label htmlFor="openai-api-key">OpenAI API Key</Label>
-            {apiKeyValidity?.llm && <CheckIcon className="h-4 w-4 text-green-600" />}
+            {apiKeyValidity?.llm && <IoCheckmarkCircleSharp className="h-4 w-4 text-white" />}
           </div>
           <div className="relative">
             <Input
@@ -175,7 +176,7 @@ export function APIKeySelection({ apiKeyValidity, setApiKeyValidity }: APIKeySel
               placeholder=""
               value={apiKeys.openai || ""}
               onChange={handleChangeOpenAI}
-              className="pr-10"
+              className="pr-10 bg-primary text-secondary"
             />
             <button
               type="button"
@@ -193,7 +194,7 @@ export function APIKeySelection({ apiKeyValidity, setApiKeyValidity }: APIKeySel
         <div className="grid gap-3">
           <div className="flex items-center gap-2">
             <Label htmlFor="cartesia-api-key">Cartesia API Key (Optional)</Label>
-            {apiKeyValidity?.tts && <CheckIcon className="h-4 w-4 text-green-600" />}
+            {apiKeyValidity?.tts && <IoCheckmarkCircleSharp className="h-4 w-4 text-white" />}
           </div>
           <div className="relative">
             <Input
@@ -203,7 +204,7 @@ export function APIKeySelection({ apiKeyValidity, setApiKeyValidity }: APIKeySel
               placeholder=""
               value={apiKeys.cartesia || ""}
               onChange={handleChangeCartesia}
-              className="pr-10"
+              className="pr-10 bg-primary text-secondary"
             />
             <button
               type="button"
@@ -218,10 +219,10 @@ export function APIKeySelection({ apiKeyValidity, setApiKeyValidity }: APIKeySel
             </button>
           </div>
         </div>
-        <div className="pb-1 text-muted-foreground text-xs">
+        <div className="pb-1 text-muted-dark text-xs">
           <p>
-            Note: Providers for which you have previously entered valid keys, will have a green
-            check mark next to them.
+            Note: Providers for which you have previously entered a valid key will have checkmark
+            near the name.
           </p>
         </div>
         <div className="flex justify-between">
@@ -231,7 +232,7 @@ export function APIKeySelection({ apiKeyValidity, setApiKeyValidity }: APIKeySel
             disabled={
               isClearing || (!apiKeyValidity?.stt && !apiKeyValidity?.llm && !apiKeyValidity?.tts)
             }
-            className="flex items-center bg-red-600 hover:bg-red-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-medium h-6"
+            className="flex items-center bg-oxford-blue hover:bg-oxford-blue/90 disabled:bg-battleship-gray disabled:cursor-not-allowed text-primary font-medium h-8 gap-1 transition-colors"
           >
             <TrashIcon className="h-4 w-4" />
             {isClearing ? "Clearing..." : "Clear All"}
@@ -239,7 +240,7 @@ export function APIKeySelection({ apiKeyValidity, setApiKeyValidity }: APIKeySel
           <Button
             type="submit"
             disabled={isLoading}
-            className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-medium transition-colors h-6"
+            className="bg-primary hover:bg-primary/90 disabled:bg-battleship-gray disabled:cursor-not-allowed text-secondary font-medium h-8 transition-colors"
           >
             {isLoading ? "Validating..." : "Validate Keys"}
           </Button>

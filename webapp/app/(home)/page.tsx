@@ -25,7 +25,7 @@ export default async function Page() {
   const apiKeyValidity = result?.apiKeyValidity ?? null;
 
   return (
-    <div className="h-full w-full bg-slate-900 p-6">
+    <div className="h-full w-full bg-secondary p-6">
       <Agent
         initTasks={initTasks}
         apiKeyValidity={apiKeyValidity}

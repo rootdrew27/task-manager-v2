@@ -27,24 +27,34 @@ export function SettingsModal({
 }: SettingsModalProps) {
   return (
     <Dialog open={true} onOpenChange={onClose}>
-      <DialogContent>
-        <Tabs defaultValue="account" className="w-full min-h-[400px]">
-          <DialogHeader>
-            <DialogTitle>Settings</DialogTitle>
-            <DialogDescription className="muted">
+      <DialogContent className="bg-secondary border-primary border-2 shadow-xl">
+        <Tabs defaultValue="models" className="w-full min-h-[350px]">
+          <DialogHeader className="border-b border-secondary pb-4">
+            <DialogTitle className="text-primary text-xl font-semibold">Settings</DialogTitle>
+            <DialogDescription className="text-secondary-text">
               Update your AI model preferences for voice assistance.
             </DialogDescription>
           </DialogHeader>
-          <div className="py-2 relative right-1">
-            <TabsList>
-              <TabsTrigger value="models">Model Selection</TabsTrigger>
-              <TabsTrigger value="apikeys">API Keys</TabsTrigger>
+          <div className=" relative right-1">
+            <TabsList className="bg-secondary border border-primary">
+              <TabsTrigger
+                value="models"
+                className="data-[state=active]:bg-primary data-[state=active]:text-secondary text-oxford-blue hover:bg-powder-blue/50 transition-colors"
+              >
+                Model Selection
+              </TabsTrigger>
+              <TabsTrigger
+                value="apikeys"
+                className="data-[state=active]:bg-primary data-[state=active]:text-secondary text-oxford-blue hover:bg-powder-blue/50 transition-colors"
+              >
+                API Keys
+              </TabsTrigger>
             </TabsList>
           </div>
-          <TabsContent value="models" className="w-full">
+          <TabsContent value="models" className="w-full mt-4">
             <ModelSelection selectedModels={selectedModels} setSelectedModels={setSelectedModels} />
           </TabsContent>
-          <TabsContent value="apikeys" className="w-full">
+          <TabsContent value="apikeys" className="w-full mt-4">
             <APIKeySelection
               apiKeyValidity={apiKeyValidity}
               setApiKeyValidity={setApiKeyValidity}

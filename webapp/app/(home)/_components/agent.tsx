@@ -6,12 +6,14 @@ import { Settings } from "@/components/settings";
 import { useTasks } from "@/hooks/useTasks";
 import { ApiKeyValidity, SelectedModels } from "@/types/agent";
 import { RoomContext } from "@livekit/components-react";
+import { motion } from "framer-motion";
 import { Room } from "livekit-client";
 import { useCallback, useMemo, useState } from "react";
 // import { GiConsoleController } from "react-icons/gi";
 import { SimpleVoiceAssistant } from "./agent-ui";
 import { TaskManager } from "./task-manager";
 import { TranscriptionBox } from "./transcription-box";
+import { TranscriptionButton } from "./transcription-button";
 
 interface AgentProps {
   initTasks: TaskInfo[];
@@ -23,6 +25,7 @@ export const Agent = (props: AgentProps) => {
   const room = useMemo(() => new Room(), []);
   const [apiKeyValidity, setApiKeyValidity] = useState(props.apiKeyValidity);
   const [selectedModels, setSelectedModels] = useState(props.selectedModels);
+  const [isTranscriptionVisible, setIsTranscriptionVisible] = useState(false);
 
   const onConnectButtonClicked = useCallback(async () => {
     const url = new URL(
@@ -42,30 +45,48 @@ export const Agent = (props: AgentProps) => {
 
   return (
     <RoomContext.Provider value={room}>
-      <div className="h-full w-full flex flex-col items-center justify-between relative">
+      <div className="h-full w-full flex flex-col items-center justify-between relative bg-secondary overflow-hidden">
         <div className="flex justify-center w-full p-2 min-h-[80%] max-h-[80%] overflow-y-auto">
           <TaskManager tasks={tasks} />
         </div>
-        <div className="flex justify-between w-10/12">
-          <div className="flex gap-x-4 px-4 py-4 bg-slate-800 rounded-full">
-            <SimpleVoiceAssistant
-              onConnectButtonClicked={onConnectButtonClicked}
-              apiKeyValidity={apiKeyValidity}
-              setApiKeyValidity={setApiKeyValidity}
-              selectedModels={selectedModels}
+        <div className="flex flex-col items-center w-full py-0.5 ">
+          {" "}
+          {/* NOTE: The py-0.5 smooths the button animation (somehow) */}
+          <motion.div
+            className="flex justify-between w-8/12 2xl:w-9/12 max-w-[1100px] min-w-[448px] bg-walnut-brown border border-primary rounded-full shadow-black/10 shadow-sm"
+            initial={{ y: 50, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ duration: 0.7, delay: 0.5, ease: "easeOut" }}
+          >
+            <div className="flex p-1 rounded-full">
+              <SimpleVoiceAssistant
+                onConnectButtonClicked={onConnectButtonClicked}
+                apiKeyValidity={apiKeyValidity}
+                setApiKeyValidity={setApiKeyValidity}
+                selectedModels={selectedModels}
+              />
+              <MicControl />
+            </div>
+            <div className="p-1 flex rounded-full">
+              <TranscriptionButton
+                isVisible={isTranscriptionVisible}
+                onToggle={() => setIsTranscriptionVisible(!isTranscriptionVisible)}
+              />
+              <Settings
+                apiKeyValidity={apiKeyValidity}
+                setApiKeyValidity={setApiKeyValidity}
+                selectedModels={selectedModels}
+                setSelectedModels={setSelectedModels}
+              />
+            </div>
+          </motion.div>
+          <motion.div initial={{ y: 50, opacity: 1 }} animate={{ y: 0, opacity: 1 }}>
+            <TranscriptionBox
+              isVisible={isTranscriptionVisible}
+              onClose={() => setIsTranscriptionVisible(false)}
             />
-            <MicControl />
-          </div>
-          <div className="px-4 py-4 bg-slate-800 rounded-full">
-            <Settings
-              apiKeyValidity={apiKeyValidity}
-              setApiKeyValidity={setApiKeyValidity}
-              selectedModels={selectedModels}
-              setSelectedModels={setSelectedModels}
-            />
-          </div>
+          </motion.div>
         </div>
-        <TranscriptionBox />
       </div>
     </RoomContext.Provider>
   );

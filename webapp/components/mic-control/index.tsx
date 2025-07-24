@@ -38,42 +38,44 @@ export function MicControl() {
   return (
     <>
       <motion.div
-        whileHover={{ scale: 1.03 }}
-        transition={{ type: "spring", stiffness: 400, damping: 17 }}
-        className="relative"
+        whileHover={{
+          scale: 1.1,
+          transition: { duration: 0.2 },
+        }}
+        className="bg-transparent rounded-full p-2"
       >
         {/* Combined Button Container */}
         <div
           className={cn(
-            "flex items-center rounded-full border-0 transition-all duration-200 bg-white",
-            isMuted ? "border-red-200 shadow-sm shadow-red-100" : "border-gray-200"
+            "flex items-center rounded-full border border-primary bg-primary shadow-black/10 shadow-sm",
+            isMuted && "border-red-200 shadow-sm shadow-red-100"
           )}
         >
           {/* Mute/Unmute Button */}
-          <button
+          <motion.button
             onClick={toggleMute}
             className={cn(
-              "h-[50px] w-[50px] rounded-l-full border-0 relative",
+              "h-[50px] w-[50px] rounded-l-full bg-primary border-0 relative flex justify-center items-center focus:outline-none focus:ring-0 focus:ring-offset-0 transition-colors",
               isMuted
                 ? "bg-red-50 text-red-600 hover:bg-red-100"
-                : "bg-transparent text-gray-600 hover:bg-gray-50"
+                : "text-oxford-blue hover:bg-secondary/10"
             )}
           >
-            <motion.span className="inline-block">
-              {isMuted ? (
-                <MicOff className="h-4 w-4" strokeWidth={2.5} />
-              ) : (
-                <Mic className="h-4 w-4" strokeWidth={2.5} />
-              )}
-            </motion.span>
+            {isMuted ? (
+              <MicOff className="h-4 w-4" strokeWidth={2.5} />
+            ) : (
+              <Mic className="h-4 w-4 text-oxford-blue" strokeWidth={2.5} />
+            )}
             {/* Visual divider as pseudo-element */}
-            <div
+            <motion.div
               className={cn(
-                "absolute right-0 top-1/2 -translate-y-1/2 w-px h-6 transition-colors duration-200",
-                isMuted ? "bg-red-200" : "bg-gray-200"
+                "absolute right-0 top-1/2 -translate-y-1/2 w-px h-6",
+                isMuted ? "bg-red-200" : "bg-secondary"
               )}
+              style={{ scale: 1 / 1.04 }}
+              whileHover={{ scale: 1 / 1.04 }}
             />
-          </button>
+          </motion.button>
 
           {/* Dropdown Trigger */}
           <Select
@@ -83,40 +85,45 @@ export function MicControl() {
           >
             <SelectTrigger
               className={cn(
-                "w-[50px] border-0 h-[50px] rounded-r-full hover:bg-gray-50 transition-colors",
+                "w-[50px] border-0 h-[50px] rounded-r-full bg-primary hover:bg-secondary/10 transition-colors",
                 "focus:outline-none focus:ring-0 focus:ring-offset-0",
-                "[&>svg]:hidden" // Hide the default Radix chevron
+                "[&>svg]:hidden", // Hide the default Radix chevron
+                "shadow-none"
               )}
             >
               <motion.div
                 animate={{ rotate: isDropdownOpen ? 180 : 0 }}
                 transition={{ type: "spring", stiffness: 400, damping: 25 }}
               >
-                <ChevronDown
-                  className={cn(
-                    "h-4 w-4 transition-colors duration-200",
-                    isMuted ? "text-red-600" : "text-gray-600"
-                  )}
-                />
+                <motion.span className="inline-block">
+                  <ChevronDown
+                    className={cn("h-4 w-4", isMuted ? "text-red-600" : "text-oxford-blue")}
+                  />
+                </motion.span>
               </motion.div>
             </SelectTrigger>
-            <SelectContent align="end" className="min-w-[250px]">
-              <div className="px-2 py-1.5 text-xs font-medium text-gray-500 border-b">
+            <SelectContent
+              align="end"
+              className="min-w-[250px] bg-primary border-secondary text-secondary"
+            >
+              <div className="px-2 py-1.5 text-xs font-medium text-oxford-blue border-b border-secondary">
                 Microphone Selection
               </div>
               {micDevices.map((device) => (
                 <SelectItem key={device.deviceId} value={device.deviceId}>
                   <div className="flex items-center gap-2">
-                    <Mic className="h-3 w-3 text-gray-400" />
-                    {device.label || `Microphone ${device.deviceId.slice(0, 8)}`}
+                    <Mic className="h-3 w-3 text-oxford-blue" />
+                    <span className="text-oxford-blue">
+                      {device.label || `Microphone ${device.deviceId.slice(0, 8)}`}
+                    </span>
                   </div>
                 </SelectItem>
               ))}
               {micDevices.length === 0 && (
                 <SelectItem value="no-devices" disabled>
                   <div className="flex items-center gap-2">
-                    <MicOff className="h-3 w-3 text-gray-400" />
-                    No microphones found
+                    <MicOff className="h-3 w-3 text-oxford-blue/50" />
+                    <span className="text-oxford-blue/50">No microphones found</span>
                   </div>
                 </SelectItem>
               )}

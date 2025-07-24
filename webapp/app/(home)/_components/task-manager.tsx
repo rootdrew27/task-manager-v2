@@ -4,6 +4,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { Accordion } from "radix-ui";
 import { useEffect, useRef } from "react";
 import { Task } from "./task";
+import { TaskManagerTitle } from "./task-manager-title";
 
 function TaskManager(props: { tasks: Array<TaskInfo> }) {
   const hasMounted = useRef(true);
@@ -18,8 +19,9 @@ function TaskManager(props: { tasks: Array<TaskInfo> }) {
         initial={{ opacity: 0, scale: 0 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0 }}
+        className="relative mb-2"
       >
-        <h2 className="font-semibold text-lg text-white">Tasks</h2>
+        <TaskManagerTitle />
       </motion.div>
       <div className="w-full">
         <Accordion.Root type="multiple" className="AccordionRoot">

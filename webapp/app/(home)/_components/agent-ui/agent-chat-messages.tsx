@@ -41,11 +41,18 @@ export function AgentChatMessages() {
   return (
     <div className="space-y-4 p-4 overflow-y-auto">
       {completeMessages.map((msg, index) => (
-        <div key={index} className="bg-zinc-800 rounded-md p-2">
+        <div
+          key={index}
+          className="bg-secondary border border-primary rounded-md p-3 text-oxford-blue"
+        >
           {msg}
         </div>
       ))}
-      {liveMessage && <div className="bg-zinc-800 rounded-md p-2">{liveMessage}</div>}
+      {liveMessage && (
+        <div className="bg-secondary border border-primary rounded-md p-3 text-oxford-blue">
+          {liveMessage}
+        </div>
+      )}
     </div>
   );
 }

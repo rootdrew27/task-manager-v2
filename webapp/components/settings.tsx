@@ -1,5 +1,5 @@
 import { ApiKeyValidity, SelectedModels } from "@/types/agent";
-import { motion } from "motion/react";
+import { motion } from "framer-motion";
 import { useState } from "react";
 import { GoGear } from "react-icons/go";
 import { SettingsModal } from "./settings-modal";
@@ -14,8 +14,12 @@ interface SettingsProps {
 export function Settings(props: SettingsProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const handleClick = () => {
-    setIsModalOpen(true);
+  const handleClick = async () => {
+    await new Promise(() =>
+      setTimeout(() => {
+        setIsModalOpen(true);
+      }, 600)
+    );
   };
 
   const handleCloseModal = () => {
@@ -24,23 +28,35 @@ export function Settings(props: SettingsProps) {
 
   return (
     <>
-      <motion.button
-        initial={{ opacity: 0, scale: 0 }}
-        animate={{ opacity: 1, scale: 1 }}
-        whileHover={{ scale: 1.05 }}
-        transition={{ type: "spring", stiffness: 400, damping: 17 }}
-        whileTap={{ scale: 0.98 }}
-        onClick={handleClick}
-        className="bg-white rounded-full w-[50px] h-[50px] flex items-center justify-center hover:cursor-pointer hover:bg-gray-50"
+      <motion.div
+        whileTap={{
+          scale: 0.8,
+          transition: { duration: 0.1, ease: "easeOut" },
+        }}
+        onTapStart={() => handleClick()}
+        style={{
+          minWidth: "54px", // Maintains hit area (50px button + 4px padding)
+          minHeight: "54px",
+          touchAction: "manipulation", // Prevents zoom on mobile
+        }}
+        className="bg-transparent rounded-full p-2"
+        tabIndex={-1}
       >
-        <motion.span
-          className="inline-block"
-          whileHover={{ rotate: 180 }}
-          transition={{ type: "spring", stiffness: 200, damping: 15 }}
+        <motion.button
+          whileHover={{
+            scale: 1.1,
+            transition: { duration: 0.2 },
+          }}
+          className="bg-white rounded-full control-button flex items-center justify-center hover:cursor-pointer shadow-black/10 shadow-sm"
+          style={{
+            touchAction: "manipulation", // Prevents zoom on mobile
+          }}
         >
-          <GoGear className="text-gray-600 h-6 w-6" strokeWidth={0.3} />
-        </motion.span>
-      </motion.button>
+          <motion.span whileHover={{ rotate: 180 }}>
+            <GoGear className="text-oxford-blue h-6 w-6" strokeWidth={0.3} />
+          </motion.span>
+        </motion.button>
+      </motion.div>
 
       {isModalOpen && (
         <SettingsModal
