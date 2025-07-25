@@ -4,6 +4,7 @@ import { AudioLevelMonitor } from "@/components/audio-level-monitor";
 import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import {
+  useConnectionState,
   useLocalParticipant,
   useMediaDeviceSelect,
   usePersistentUserChoices,
@@ -21,6 +22,7 @@ export function MicControl() {
 
   const room = useRoomContext();
   const { localParticipant } = useLocalParticipant();
+  const connectionState = useConnectionState(room);
 
   const { userChoices, saveAudioInputDeviceId } = usePersistentUserChoices({
     preventSave: false,
@@ -42,10 +44,13 @@ export function MicControl() {
     track: audioTrack,
   });
 
+  console.log(activeDeviceId);
+
   const handleToggleMicrophone = useCallback(
     async (enabled: boolean) => {
       try {
         if (enabled) {
+          console.log("Enabling mic: ", activeDeviceId);
           await localParticipant.setMicrophoneEnabled(true, {
             deviceId: activeDeviceId || undefined,
           });
@@ -63,37 +68,54 @@ export function MicControl() {
   const toggleMute = useCallback(() => {
     const newMutedState = !isMuted;
     setIsMuted(newMutedState);
-    if (room.state === ConnectionState.Connected) {
+    if (connectionState === ConnectionState.Connected) {
       handleToggleMicrophone(!newMutedState);
     }
-  }, [isMuted, handleToggleMicrophone, room.state]);
+  }, [isMuted, handleToggleMicrophone, connectionState]);
 
   // Auto-enable microphone when room connects
   useEffect(() => {
-    if (room.state === ConnectionState.Connected && !isMuted) {
+    if (connectionState === ConnectionState.Connected && !isMuted) {
       handleToggleMicrophone(true);
     }
-  }, [room.state, handleToggleMicrophone, isMuted]);
+  }, [handleToggleMicrophone, isMuted, connectionState]);
 
   const handleAudioDeviceChange = useCallback(
     async (deviceId: string) => {
       saveAudioInputDeviceId(deviceId);
       setActiveMediaDevice(deviceId);
 
-      // If microphone is currently enabled, switch to the new device
-      if (!isMuted && room.state === ConnectionState.Connected) {
+      // If microphone is currently enabled, enable the new device
+      if (!isMuted && connectionState === ConnectionState.Connected) {
         await handleToggleMicrophone(true);
       }
     },
-    [saveAudioInputDeviceId, setActiveMediaDevice, isMuted, room.state, handleToggleMicrophone]
+    [saveAudioInputDeviceId, setActiveMediaDevice, isMuted, connectionState, handleToggleMicrophone]
   );
 
   // Sync user preferences with active device
   useEffect(() => {
+    console.log("in useeffect", activeDeviceId);
+
     if (userChoices.audioDeviceId && userChoices.audioDeviceId !== activeDeviceId) {
       setActiveMediaDevice(userChoices.audioDeviceId);
     }
   }, [userChoices.audioDeviceId, activeDeviceId, setActiveMediaDevice]);
+
+  // reset wrong activeDeviceId
+  useEffect(() => {
+    if (
+      devices.length > 0 &&
+      !devices
+        .map((device) => {
+          return device.deviceId;
+        })
+        .includes(activeDeviceId)
+    ) {
+      setActiveMediaDevice("default");
+      saveAudioInputDeviceId("default");
+    }
+  }, [setActiveMediaDevice, devices, activeDeviceId, saveAudioInputDeviceId]);
 
   return (
     <div className="flex">
