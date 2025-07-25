@@ -1,42 +1,102 @@
 "use client";
 
+import { AudioLevelMonitor } from "@/components/audio-level-monitor";
 import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import {
+  useLocalParticipant,
+  useMediaDeviceSelect,
+  usePersistentUserChoices,
+  usePreviewTracks,
+  useRoomContext,
+} from "@livekit/components-react";
 import { motion } from "framer-motion";
+import { ConnectionState, LocalAudioTrack, Track } from "livekit-client";
 import { ChevronDown, Mic, MicOff } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 export function MicControl() {
   const [isMuted, setIsMuted] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [selectedMic, setSelectedMic] = useState<string>("");
-  const [micDevices, setMicDevices] = useState<MediaDeviceInfo[]>([]);
 
-  // Get available microphone devices
-  useEffect(() => {
-    const getMicDevices = async () => {
+  const room = useRoomContext();
+  const { localParticipant } = useLocalParticipant();
+
+  const { userChoices, saveAudioInputDeviceId } = usePersistentUserChoices({
+    preventSave: false,
+  });
+
+  // Get preview tracks for device selection
+  const tracks = usePreviewTracks({
+    audio: { deviceId: userChoices.audioDeviceId },
+  });
+
+  const audioTrack = useMemo(
+    () => tracks?.filter((track) => track.kind === Track.Kind.Audio)[0] as LocalAudioTrack,
+    [tracks]
+  );
+
+  const { devices, activeDeviceId, setActiveMediaDevice } = useMediaDeviceSelect({
+    kind: "audioinput",
+    room,
+    track: audioTrack,
+  });
+
+  const handleToggleMicrophone = useCallback(
+    async (enabled: boolean) => {
       try {
-        await navigator.mediaDevices.getUserMedia({ audio: true });
-        const devices = await navigator.mediaDevices.enumerateDevices();
-        const audioInputs = devices.filter((device) => device.kind === "audioinput");
-        setMicDevices(audioInputs);
-        if (audioInputs.length > 0 && !selectedMic) {
-          setSelectedMic(audioInputs[0].deviceId);
+        if (enabled) {
+          await localParticipant.setMicrophoneEnabled(true, {
+            deviceId: activeDeviceId || undefined,
+          });
+        } else {
+          console.log("disabling mic");
+          await localParticipant.setMicrophoneEnabled(false);
         }
       } catch (error) {
-        console.error("Error accessing microphones:", error);
+        console.error("Error toggling microphone:", error);
       }
-    };
+    },
+    [localParticipant, activeDeviceId]
+  );
 
-    getMicDevices();
-  }, [selectedMic]);
+  const toggleMute = useCallback(() => {
+    const newMutedState = !isMuted;
+    setIsMuted(newMutedState);
+    if (room.state === ConnectionState.Connected) {
+      handleToggleMicrophone(!newMutedState);
+    }
+  }, [isMuted, handleToggleMicrophone, room.state]);
 
-  const toggleMute = () => {
-    setIsMuted(!isMuted);
-  };
+  // Auto-enable microphone when room connects
+  useEffect(() => {
+    if (room.state === ConnectionState.Connected && !isMuted) {
+      handleToggleMicrophone(true);
+    }
+  }, [room.state, handleToggleMicrophone, isMuted]);
+
+  const handleAudioDeviceChange = useCallback(
+    async (deviceId: string) => {
+      saveAudioInputDeviceId(deviceId);
+      setActiveMediaDevice(deviceId);
+
+      // If microphone is currently enabled, switch to the new device
+      if (!isMuted && room.state === ConnectionState.Connected) {
+        await handleToggleMicrophone(true);
+      }
+    },
+    [saveAudioInputDeviceId, setActiveMediaDevice, isMuted, room.state, handleToggleMicrophone]
+  );
+
+  // Sync user preferences with active device
+  useEffect(() => {
+    if (userChoices.audioDeviceId && userChoices.audioDeviceId !== activeDeviceId) {
+      setActiveMediaDevice(userChoices.audioDeviceId);
+    }
+  }, [userChoices.audioDeviceId, activeDeviceId, setActiveMediaDevice]);
 
   return (
-    <>
+    <div className="flex">
       <motion.div
         whileHover={{
           scale: 1.1,
@@ -55,7 +115,7 @@ export function MicControl() {
           <motion.button
             onClick={toggleMute}
             className={cn(
-              "h-[50px] w-[50px] rounded-l-full bg-primary border-0 relative flex justify-center items-center focus:outline-none focus:ring-0 focus:ring-offset-0 transition-colors",
+              "h-[50px] w-[50px] rounded-l-full bg-primary border-0 relative flex justify-center items-center hover:cursor-pointer focus:outline-none focus:ring-0 focus:ring-offset-0 transition-colors",
               isMuted
                 ? "bg-red-50 text-red-600 hover:bg-red-100"
                 : "text-oxford-blue hover:bg-secondary/10"
@@ -64,7 +124,7 @@ export function MicControl() {
             {isMuted ? (
               <MicOff className="h-4 w-4" strokeWidth={2.5} />
             ) : (
-              <Mic className="h-4 w-4 text-oxford-blue" strokeWidth={2.5} />
+              <Mic className="h-4 w-4" strokeWidth={2.5} />
             )}
             {/* Visual divider as pseudo-element */}
             <motion.div
@@ -79,13 +139,13 @@ export function MicControl() {
 
           {/* Dropdown Trigger */}
           <Select
-            value={selectedMic}
-            onValueChange={setSelectedMic}
+            value={activeDeviceId || ""}
+            onValueChange={handleAudioDeviceChange}
             onOpenChange={setIsDropdownOpen}
           >
             <SelectTrigger
               className={cn(
-                "w-[50px] border-0 h-[50px] rounded-r-full bg-primary hover:bg-secondary/10 transition-colors",
+                "w-[50px] border-0 h-[50px] rounded-r-full bg-primary hover:bg-secondary/10 transition-colors hover:cursor-pointer",
                 "focus:outline-none focus:ring-0 focus:ring-offset-0",
                 "[&>svg]:hidden", // Hide the default Radix chevron
                 "shadow-none"
@@ -109,7 +169,7 @@ export function MicControl() {
               <div className="px-2 py-1.5 text-xs font-medium text-oxford-blue border-b border-secondary">
                 Microphone Selection
               </div>
-              {micDevices.map((device) => (
+              {devices.map((device) => (
                 <SelectItem key={device.deviceId} value={device.deviceId}>
                   <div className="flex items-center gap-2">
                     <Mic className="h-3 w-3 text-oxford-blue" />
@@ -119,7 +179,7 @@ export function MicControl() {
                   </div>
                 </SelectItem>
               ))}
-              {micDevices.length === 0 && (
+              {devices.length === 0 && (
                 <SelectItem value="no-devices" disabled>
                   <div className="flex items-center gap-2">
                     <MicOff className="h-3 w-3 text-oxford-blue/50" />
@@ -131,6 +191,12 @@ export function MicControl() {
           </Select>
         </div>
       </motion.div>
-    </>
+      {/* Audio Level Monitor */}
+      {!isMuted && (
+        <div className="flex items-center justify-center w-5 p-0">
+          <AudioLevelMonitor deviceId={activeDeviceId || undefined} />
+        </div>
+      )}
+    </div>
   );
 }

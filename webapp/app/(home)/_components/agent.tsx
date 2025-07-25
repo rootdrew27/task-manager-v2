@@ -7,8 +7,8 @@ import { useTasks } from "@/hooks/useTasks";
 import { ApiKeyValidity, SelectedModels } from "@/types/agent";
 import { RoomContext } from "@livekit/components-react";
 import { motion } from "framer-motion";
-import { Room } from "livekit-client";
-import { useCallback, useMemo, useState } from "react";
+import { Room, RoomEvent } from "livekit-client";
+import { useCallback, useEffect, useMemo, useState } from "react";
 // import { GiConsoleController } from "react-icons/gi";
 import { SimpleVoiceAssistant } from "./agent-ui";
 import { TaskManager } from "./task-manager";
@@ -37,7 +37,20 @@ export const Agent = (props: AgentProps) => {
 
     await room.connect(connectionDetailsData.serverUrl, connectionDetailsData.participantToken);
     console.log("connected to livekit room");
-    await room.localParticipant.setMicrophoneEnabled(true);
+  }, [room]);
+
+  useEffect(() => {
+    const onMediaDevicesError = (error: Error) => {
+      console.error({
+        title: "Encountered an error with your media devices",
+        description: `${error.name}: ${error.message}`,
+      });
+    };
+    room.on(RoomEvent.MediaDevicesError, onMediaDevicesError);
+
+    return () => {
+      room.off(RoomEvent.MediaDevicesError, onMediaDevicesError);
+    };
   }, [room]);
 
   const initTasks = props.initTasks;

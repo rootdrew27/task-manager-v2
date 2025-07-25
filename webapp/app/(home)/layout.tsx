@@ -9,7 +9,7 @@ export default async function HomeLayout({
   const session = await auth();
 
   return (
-    <div className="h-full bg-[var(--lk-bg)]">
+    <div className="h-full bg-secondary">
       <Navbar session={session} />
       {children}
     </div>

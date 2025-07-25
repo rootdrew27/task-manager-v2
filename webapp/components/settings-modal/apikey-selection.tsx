@@ -221,7 +221,7 @@ export function APIKeySelection({ apiKeyValidity, setApiKeyValidity }: APIKeySel
         </div>
         <div className="pb-1 text-muted-dark text-xs">
           <p>
-            Note: Providers for which you have previously entered a valid key will have checkmark
+            Note: Providers for which you have previously entered a valid key will have a checkmark
             near the name.
           </p>
         </div>
