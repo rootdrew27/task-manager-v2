@@ -29,7 +29,7 @@ export function SignInOrOutButton(props: SignInOrOutButtonProps) {
           minHeight: "54px",
           touchAction: "manipulation", // Prevents zoom on mobile
         }}
-        className="bg-transparent rounded-full p-2"
+        className="bg-transparent rounded-full p-1"
         tabIndex={-1}
       >
         {props.isSignedIn ? <SignOut /> : <SignIn />}
