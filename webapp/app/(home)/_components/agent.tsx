@@ -25,7 +25,7 @@ export const Agent = (props: AgentProps) => {
   const room = useMemo(() => new Room(), []);
   const [apiKeyValidity, setApiKeyValidity] = useState(props.apiKeyValidity);
   const [selectedModels, setSelectedModels] = useState(props.selectedModels);
-  const [isTranscriptionVisible, setIsTranscriptionVisible] = useState(false);
+  const [isTranscriptionVisible, setIsTranscriptionVisible] = useState(true);
 
   const onConnectButtonClicked = useCallback(async () => {
     const url = new URL(
@@ -93,7 +93,11 @@ export const Agent = (props: AgentProps) => {
               />
             </div>
           </motion.div>
-          <motion.div initial={{ y: 50, opacity: 1 }} animate={{ y: 0, opacity: 1 }}>
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.5, delay: 0.8, ease: "easeIn" }}
+          >
             <TranscriptionBox
               isVisible={isTranscriptionVisible}
               onClose={() => setIsTranscriptionVisible(false)}
