@@ -65,7 +65,9 @@ async def create_task(
                     (user_id, name, is_complete, deadline, description),
                 )
                 if cur.rowcount != 1:
-                    raise Exception
+                    raise Exception(
+                        "Modified row count (i.e. cur.rowcount) did not equal 1."
+                    )
                 return "Success"
             except errors.UniqueViolation:
                 logging.info(
@@ -77,25 +79,6 @@ async def create_task(
                     f"An unexpected error occurred while creating a task for user ({user_id}). Task Info: name = ({name}), is_complete = ({is_complete}), deadline = ({deadline}), description = ({description}).\nError Type: {type(ex)}\nError: {ex}\n"
                 )
                 return TaskError()
-
-    # try:
-    #     tasks_collection = get_tasks_collection()
-    #     filter_ = {"name": {"$regex": f"^{name}$", "$options": "i"}}
-    #     if await tasks_collection.find_one(filter_):
-    #         logging.info(f"Task already exists: {name}")
-    #         return TaskAlreadyExistsError()
-    #     task: Task = {
-    #         "name": name,
-    #         "is_complete": is_complete if (is_complete is not None) else (False),
-    #         "deadline": deadline.strftime("%A, %B %d, %Y at %I:%M %p")
-    #         if deadline
-    #         else None,
-    #         "description": description,
-    #     }
-    #     return await tasks_collection.insert_one(task)
-    # except Exception as ex:
-    #     logging.error(f"Error in db.create_task: {ex}")
-    #     return TaskError()
 
 
 async def edit_task(user_id: str, name: TaskName, updated_fields: Dict[str, Any]):
@@ -125,11 +108,11 @@ async def edit_task(user_id: str, name: TaskName, updated_fields: Dict[str, Any]
                 )
                 updated_task = await cur.fetchone()
                 if not updated_task:
-                    raise Exception
+                    raise Exception("No result returned.")
                 return updated_task
             except errors.UniqueViolation:
                 logger.info(
-                    f"Unique constraint violation by user (user_id). Error occured while editing the task with name = ({name}). The new name was to be ({updated_fields.get('name')})."
+                    f"Unique constraint violation by user ({user_id}). Error occured while editing the task with name = ({name}). The new name was to be ({updated_fields.get('name')})."
                 )
                 return TaskAlreadyExistsError()
             except Exception as ex:
@@ -138,33 +121,17 @@ async def edit_task(user_id: str, name: TaskName, updated_fields: Dict[str, Any]
                 )
                 return TaskError()
 
-    # try:
-    #     tasks_collection = get_collection(user_id)
-    #     if not updated_fields:
-    #         return ValueError()
-
-    #     filter_ = {"name": {"$regex": f"^{name}$", "$options": "i"}}
-    #     result = await tasks_collection.update_one(filter_, {"$set": updated_fields})
-
-    #     return result.modified_count
-
-    # except Exception as ex:
-    #     logging.error(f"Error in db.edit_task: {ex}")
-    #     return TaskError()
-
 
 async def delete_task(user_id: str, name: TaskName):
     """Delete a task by name (case-insensitive)."""
     async with pool.connection() as conn:
         async with conn.cursor() as cur:
             try:
-                query = sql.SQL(
-                    """
+                query = """
                     DELETE FROM task
                     WHERE user_id = %s
                     AND LOWER(name) = LOWER(%s);
                     """
-                )
                 await cur.execute(query, (user_id, name))
                 if cur.rowcount != 1:
                     raise Exception(
@@ -176,18 +143,6 @@ async def delete_task(user_id: str, name: TaskName):
                     f"An unexpected error occurred while deleting a task for user ({user_id}). Task Info: name = ({name}).\nError Type: {type(ex)}.\nError: {ex}.\n"
                 )
                 return TaskError()
-
-    # try:
-    #     tasks_collection = get_collection(user_id)
-    #     filter_ = {"name": {"$regex": f"^{name}$", "$options": "i"}}
-    #     result = await tasks_collection.delete_one(filter_)
-    #     if result.deleted_count == 0:
-    #         return TaskNotFoundError()
-    #     return result.deleted_count
-
-    # except Exception as ex:
-    #     logging.error(f"Error in db.delete_task: {ex}")
-    #     return TaskError()
 
 
 class ModelConfig(BaseModel):
@@ -216,17 +171,18 @@ async def getAgentConfig(user_id: str):
     async with pool.connection() as conn:
         async with conn.cursor(row_factory=class_row(AllModelConfig)) as cur:
             try:
-                query = sql.SQL(
-                    """
+                query = """
                     SELECT stt.provider AS stt_provider, stt.key AS stt_key, stt.model AS stt_model, llm.provider AS llm_provider, llm.key AS llm_key, llm.model AS llm_model, tts.provider AS tts_provider, tts.key AS tts_key, tts.model AS tts_model
                     FROM stt JOIN llm ON stt.user_id = llm.user_id LEFT JOIN tts ON stt.user_id = tts.user_id 
                     WHERE stt.user_id = %s;
                     """
-                )
                 await cur.execute(query, (user_id,))
                 agent_config = await cur.fetchone()
                 if agent_config is None:
-                    raise Exception()
+                    raise Exception("No result returned.")
                 return agent_config
             except Exception as ex:
+                logger.error(
+                    "An unknown exception occurred in getAgentConfig.\nError Type: {type(ex)}.\nError: {ex}.\n"
+                )
                 raise ex
