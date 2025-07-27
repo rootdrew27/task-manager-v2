@@ -44,18 +44,14 @@ export function MicControl() {
     track: audioTrack,
   });
 
-  console.log(activeDeviceId);
-
   const handleToggleMicrophone = useCallback(
     async (enabled: boolean) => {
       try {
         if (enabled) {
-          console.log("Enabling mic: ", activeDeviceId);
           await localParticipant.setMicrophoneEnabled(true, {
             deviceId: activeDeviceId || undefined,
           });
         } else {
-          console.log("disabling mic");
           await localParticipant.setMicrophoneEnabled(false);
         }
       } catch (error) {
@@ -95,8 +91,6 @@ export function MicControl() {
 
   // Sync user preferences with active device
   useEffect(() => {
-    console.log("in useeffect", activeDeviceId);
-
     if (userChoices.audioDeviceId && userChoices.audioDeviceId !== activeDeviceId) {
       setActiveMediaDevice(userChoices.audioDeviceId);
     }
@@ -151,10 +145,9 @@ export function MicControl() {
             {/* Visual divider as pseudo-element */}
             <motion.div
               className={cn(
-                "absolute right-0 top-1/2 -translate-y-1/2 w-px h-6",
+                "absolute right-0 top-1/2 -translate-y-1/2 w-px h-6 scale-compensate",
                 isMuted ? "bg-red-200" : "bg-secondary"
               )}
-              style={{ scale: 1 / 1.04 }}
               whileHover={{ scale: 1 / 1.04 }}
             />
           </motion.button>

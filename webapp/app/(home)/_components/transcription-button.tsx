@@ -16,12 +16,7 @@ export function TranscriptionButton({ isVisible, onToggle }: ToggleButtonProps) 
         transition: { duration: 0.1, ease: "easeOut" },
       }}
       onTapStart={onToggle}
-      style={{
-        minWidth: "54px", // Maintains hit area (50px button + 4px padding)
-        minHeight: "54px",
-        touchAction: "manipulation", // Prevents zoom on mobile
-      }}
-      className="bg-transparent rounded-full p-2"
+      className="bg-transparent rounded-full p-2 button-wrapper-touch-optimized"
       tabIndex={-1}
     >
       <motion.button
@@ -29,10 +24,7 @@ export function TranscriptionButton({ isVisible, onToggle }: ToggleButtonProps) 
           scale: 1.1,
           transition: { duration: 0.2 },
         }}
-        className="rounded-full control-button flex justify-center items-center shadow-black/10 shadow-sm"
-        style={{
-          touchAction: "manipulation", // Prevents zoom on mobile
-        }}
+        className="rounded-full control-button flex justify-center items-center shadow-black/10 shadow-sm touch-manipulation"
       >
         {isVisible ? (
           <PiChatCenteredFill className="text-oxford-blue h-6 w-6" />

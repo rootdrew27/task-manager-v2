@@ -104,12 +104,9 @@ export function AudioLevelMonitor({ className, deviceId }: AudioLevelMonitorProp
             <motion.div
               key={index}
               className={cn(
-                "h-0.5 rounded-full transition-colors duration-75",
+                "h-0.5 rounded-full transition-colors duration-75 w-full",
                 isActive ? getBarColor(audioLevel) : "bg-white/50"
               )}
-              style={{
-                width: "100%",
-              }}
               animate={{
                 opacity: isActive ? 1 : 0.65,
                 scaleX: isActive ? 0.4 : 0.35,

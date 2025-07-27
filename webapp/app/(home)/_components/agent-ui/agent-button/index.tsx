@@ -40,13 +40,8 @@ export function AgentButton(props: {
     return (
       <motion.div
         whileTap={{ scale: 0.8, transition: { duration: 0.1, ease: "easeOut" } }}
-        style={{
-          minWidth: "54px", // Maintains hit area (50px button + 4px padding)
-          minHeight: "54px",
-          touchAction: "manipulation", // Prevents zoom on mobile
-        }}
         onTapStart={() => props.onConnectButtonClicked()}
-        className="bg-transparent rounded-full hover:cursor-auto p-2"
+        className="bg-transparent rounded-full hover:cursor-auto p-2 button-wrapper-touch-optimized"
         tabIndex={-1}
       >
         <motion.button
@@ -54,10 +49,7 @@ export function AgentButton(props: {
             scale: 1.1,
             transition: { duration: 0.2 },
           }}
-          style={{
-            touchAction: "manipulation", // Prevents zoom on mobile
-          }}
-          className="control-button flex items-center justify-center rounded-full hover:cursor-pointer hover:bg-secondary/10"
+          className="control-button flex items-center justify-center rounded-full hover:cursor-pointer hover:bg-secondary/10 touch-manipulation"
         >
           <HiOutlineSparkles className="h-5 w-5 text-oxford-blue" />
         </motion.button>
@@ -72,23 +64,15 @@ export function AgentButton(props: {
             scale: 0.8,
             transition: { duration: 0.1, ease: "easeOut" },
           }}
-          style={{
-            minWidth: "54px", // Maintains hit area (50px button + 4px padding)
-            minHeight: "54px",
-            touchAction: "manipulation", // Prevents zoom on mobile
-          }}
           onClick={handleOpenModal}
-          className="bg-transparent rounded-full"
+          className="bg-transparent rounded-full button-wrapper-touch-optimized"
         >
           <motion.button
             whileHover={{
               scale: 1.1,
               transition: { duration: 0.2 },
             }}
-            style={{
-              touchAction: "manipulation", // Prevents zoom on mobile
-            }}
-            className="bg-primary flex items-center justify-center rounded-full control-button shadow-black/10 shadow-sm hover:cursor-pointer"
+            className="bg-primary flex items-center justify-center rounded-full control-button shadow-black/10 shadow-sm hover:cursor-pointer touch-manipulation"
           >
             {/* <RiChatVoiceAiLine className="text-gray-600 h-6 w-6" /> */}
             <HiOutlineSparkles className="h-5 w-5 text-gray-600" />

@@ -36,7 +36,6 @@ export const Agent = (props: AgentProps) => {
     const connectionDetailsData: ConnectionDetails = await response.json();
 
     await room.connect(connectionDetailsData.serverUrl, connectionDetailsData.participantToken);
-    console.log("connected to livekit room");
   }, [room]);
 
   useEffect(() => {

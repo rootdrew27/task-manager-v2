@@ -24,12 +24,7 @@ export function SignInOrOutButton(props: SignInOrOutButtonProps) {
           transition: { duration: 0.1, ease: "easeOut" },
         }}
         onTapStart={props.isSignedIn ? props.handleSignOut : props.handleSignIn}
-        style={{
-          minWidth: "54px", // Maintains hit area (50px button + 4px padding)
-          minHeight: "54px",
-          touchAction: "manipulation", // Prevents zoom on mobile
-        }}
-        className="bg-transparent rounded-full p-1"
+        className="bg-transparent rounded-full p-1 button-wrapper-touch-optimized"
         tabIndex={-1}
       >
         {props.isSignedIn ? <SignOut /> : <SignIn />}

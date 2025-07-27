@@ -15,13 +15,8 @@ export function AgentDeactivationButton() {
   return (
     <motion.div
       whileTap={{ scale: 0.8, transition: { duration: 0.1, ease: "easeOut" } }}
-      style={{
-        minWidth: "54px", // Maintains hit area (50px button + 4px padding)
-        minHeight: "54px",
-        touchAction: "manipulation", // Prevents zoom on mobile
-      }}
       onClick={handleDisconnect}
-      className="bg-transparent rounded-full hover:cursor-auto p-2"
+      className="bg-transparent rounded-full hover:cursor-auto p-2 button-wrapper-touch-optimized"
       tabIndex={-1}
     >
       <motion.button
@@ -29,10 +24,7 @@ export function AgentDeactivationButton() {
           scale: 1.1,
           transition: { duration: 0.2 },
         }}
-        style={{
-          touchAction: "manipulation", // Prevents zoom on mobile
-        }}
-        className="control-button flex items-center justify-center rounded-full"
+        className="control-button flex items-center justify-center rounded-full touch-manipulation"
       >
         <IoClose className="h-5 w-5 text-oxford-blue" />
       </motion.button>

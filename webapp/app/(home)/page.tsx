@@ -12,7 +12,7 @@ export default async function Page() {
   if (!session) {
     id = cookieStore.get("guest_id")?.value;
     if (!id) {
-      throw new Error("Issue with cookies: please refresh.");
+      throw new Error("Issue with cookies: please refresh page.");
     }
   } else {
     id = session.id;

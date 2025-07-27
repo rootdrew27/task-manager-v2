@@ -34,12 +34,7 @@ export function Settings(props: SettingsProps) {
           transition: { duration: 0.1, ease: "easeOut" },
         }}
         onTapStart={() => handleClick()}
-        style={{
-          minWidth: "54px", // Maintains hit area (50px button + 4px padding)
-          minHeight: "54px",
-          touchAction: "manipulation", // Prevents zoom on mobile
-        }}
-        className="bg-transparent rounded-full p-2"
+        className="bg-transparent rounded-full p-2 button-wrapper-touch-optimized"
         tabIndex={-1}
       >
         <motion.button
@@ -47,10 +42,7 @@ export function Settings(props: SettingsProps) {
             scale: 1.1,
             transition: { duration: 0.2 },
           }}
-          className="bg-white rounded-full control-button flex items-center justify-center hover:cursor-pointer shadow-black/10 shadow-sm"
-          style={{
-            touchAction: "manipulation", // Prevents zoom on mobile
-          }}
+          className="bg-white rounded-full control-button flex items-center justify-center hover:cursor-pointer shadow-black/10 shadow-sm touch-manipulation"
         >
           <motion.span whileHover={{ rotate: 180 }}>
             <GoGear className="text-oxford-blue h-6 w-6" strokeWidth={0.3} />

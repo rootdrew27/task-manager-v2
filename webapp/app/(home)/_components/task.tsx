@@ -91,11 +91,8 @@ function Task(props: { info: TaskInfo; delay: number }) {
         bounce: 0.1,
         duration: 0.5,
       }}
-      style={{
-        willChange: "transform, opacity",
-      }}
       key={props.info.name}
-      className="w-full"
+      className="w-full motion-optimized"
     >
       <Accordion.Item value={props.info.name} className="AccordionItem bg-primary">
         <AccordionTrigger className="">
@@ -105,9 +102,7 @@ function Task(props: { info: TaskInfo; delay: number }) {
               variants={checkIconVariants}
               initial="hidden"
               animate={props.info.is_complete ? "visible" : "hidden"}
-              style={{
-                willChange: "transform, opacity",
-              }}
+              className="motion-optimized"
             >
               {props.info.is_complete && <CiCircleCheck className="h-6 w-6 text-green-600" />}
             </motion.div>

@@ -2,28 +2,75 @@ import { auth } from "@/auth";
 import { NextResponse } from "next/server";
 
 export default auth(async (req) => {
-  console.log("HIT MIDDLEWARE!");
-  const res = NextResponse.next();
+  const nonce = Buffer.from(crypto.randomUUID()).toString("base64");
+  const cspHeader = `
+    default-src 'self';
+    script-src 'self' 'nonce-${nonce}' 'strict-dynamic' ${process.env.NODE_ENV === "development" ? "'unsafe-eval'" : ""};
+    style-src 'self' 'unsafe-inline';
+    img-src 'self' blob: data:;
+    font-src 'self';
+    object-src 'none';
+    base-uri 'self';
+    form-action 'self';
+    frame-ancestors 'none';
+    upgrade-insecure-requests;
+  `;
 
+  const contentSecurityPolicyHeaderValue = cspHeader.replace(/\s{2,}/g, " ").trim();
+
+  const requestHeaders = new Headers(req.headers);
+  requestHeaders.set("x-nonce", nonce);
+
+  requestHeaders.set("Content-Security-Policy", contentSecurityPolicyHeaderValue);
+
+  const res = NextResponse.next({
+    request: {
+      headers: requestHeaders,
+    },
+  });
+
+  res.headers.set("Content-Security-Policy", contentSecurityPolicyHeaderValue);
+
+  // const res = NextResponse.next()
+
+  // handle guest auth
   if (!req.auth?.id) {
-    const guestId = req.cookies.get("guest_id")?.value;
+    try {
+      const guestId = req.cookies.get("guest_id")?.value;
+      if (!guestId) {
+        const res2 = await fetch(`${process.env.AUTH_URL}/api/internal/guest`, {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            "x-api-key": process.env.INTERNAL_API_KEY!,
+          },
+        });
 
-    if (!guestId) {
-      const res2 = await fetch(`${process.env.AUTH_URL}/api/internal/guest`, {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          "x-api-key": process.env.INTERNAL_API_KEY!,
-        },
-      });
-      const { guestId } = await res2.json();
-      res.cookies.set("guest_id", guestId, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "lax",
-        path: "/",
-        maxAge: 60 * 60 * 24 * 1, // 1 day
-      });
+        if (!res2.ok) {
+          throw new Error(`Guest API failed with status ${res2.status}`);
+        }
+
+        const data = await res2.json();
+        if (!data.guestId || typeof data.guestId !== "string") {
+          throw new Error("Invalid guest ID response");
+        }
+
+        const { guestId } = data;
+        res.cookies.set("guest_id", guestId, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === "production",
+          sameSite: "strict",
+          path: "/",
+          maxAge: 60 * 60 * 24 * 1, // 1 day
+        });
+      }
+    } catch (error) {
+      // Log error details internally without exposing to client
+      console.error(
+        "Guest authentication failed:",
+        error instanceof Error ? error.message : "Unknown error"
+      );
+      // Continue without setting guest ID - application should handle missing guest gracefully
     }
   }
 
@@ -32,7 +79,10 @@ export default auth(async (req) => {
     const apiKey = req.headers.get("x-api-key");
 
     if (apiKey !== process.env.INTERNAL_API_KEY) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      const unauthorizedResponse = NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      unauthorizedResponse.headers.set("Content-Security-Policy", contentSecurityPolicyHeaderValue);
+      unauthorizedResponse.headers.set("x-nonce", nonce);
+      return unauthorizedResponse;
     }
     return res;
   }

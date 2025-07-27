@@ -8,10 +8,7 @@ export function SignOut() {
         scale: 1.1,
         transition: { duration: 0.2 },
       }}
-      style={{
-        touchAction: "manipulation", // Prevents zoom on mobile
-      }}
-      className="bg-white text-oxford-blue rounded-full control-button p-0 control-button flex items-center justify-center shadow-black/10 shadow-sm hover:cursor-pointer"
+      className="bg-white text-oxford-blue rounded-full control-button p-0 control-button flex items-center justify-center shadow-black/10 shadow-sm hover:cursor-pointer touch-manipulation"
       role="button"
       type="submit"
     >
