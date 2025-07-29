@@ -1,6 +1,12 @@
 import { logger } from "@/lib/logger";
 import { Pool } from "pg";
 
+declare module "pg" {
+  interface PoolClient {
+    processID?: number;
+  }
+}
+
 // Create pool with connection logging
 export const pool = new Pool({
   idleTimeoutMillis: 30000,
@@ -16,7 +22,6 @@ pool.on("connect", (client) => {
   logger.database("debug", "New database connection established", {
     metadata: {
       processID: client.processID,
-      secretKey: client.secretKey ? "[REDACTED]" : "none",
     },
   });
 });
