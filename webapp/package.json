@@ -26,6 +26,7 @@
     "classnames": "^2.5.1",
     "clsx": "^2.1.1",
     "framer-motion": "^11.18.0",
+    "ioredis": "^5.6.1",
     "livekit-client": "^2.8.0",
     "livekit-server-sdk": "^2.9.7",
     "lodash": "^4.17.21",

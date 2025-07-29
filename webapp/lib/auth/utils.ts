@@ -3,6 +3,8 @@ import { Profile } from "next-auth";
 import { JWT, getToken } from "next-auth/jwt";
 import { cookies } from "next/headers";
 
+// import { logger } from "@/lib/logger";
+
 /**
  * Fetches or creates a user via the internal API
  */
@@ -17,15 +19,16 @@ export async function getUser(profile: Profile, provider: ProviderName): Promise
       body: JSON.stringify({ profile, provider }),
     });
 
+    const data: SignInResponse = await response.json();
+
     if (!response.ok) {
-      console.error("Sign-in API error:", await response.text());
+      console.log("Bad response from sign-in API: ", data.error);
       return null;
     }
 
-    const data: SignInResponse = await response.json();
     return data.user;
   } catch (error) {
-    console.error("Error calling sign-in API:", error);
+    console.error("Error calling sign-in API: ", error);
     return null;
   }
 }
@@ -74,8 +77,8 @@ export async function refreshAccessToken(token: JWT): Promise<JWT> {
     });
 
     if (!response.ok) {
-      const errorData = await response.text();
-      console.error(`Token refresh failed for ${token.provider}:`, errorData);
+      const errorText = await response.text();
+      console.error("Issue while refreshing token. Error: ", errorText);
       throw new Error(`HTTP ${response.status}: ${response.statusText}`);
     }
 
@@ -94,8 +97,7 @@ export async function refreshAccessToken(token: JWT): Promise<JWT> {
     };
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : "Unknown error";
-    console.error("Token refresh failed:", errorMessage);
-
+    console.error(errorMessage);
     return {
       ...token,
       error: [...(token.error || []), "RefreshTokenError"],
@@ -132,14 +134,13 @@ export async function revokeToken(token: string): Promise<boolean> {
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("Token revocation failed:", errorText);
+      console.error("Issue while refreshing token. Error: ", errorText);
       return false;
     }
 
-    console.log("Token revoked successfully");
     return true;
   } catch (error) {
-    console.error("Error revoking token:", error);
+    console.error(error);
     return false;
   }
 }

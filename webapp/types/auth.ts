@@ -13,6 +13,7 @@ export interface SignInRequest {
 
 export interface SignInResponse {
   user: User;
+  error?: string;
 }
 
 export interface RefreshTokenResponse {

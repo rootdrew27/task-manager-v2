@@ -61,7 +61,7 @@ export const Agent = (props: AgentProps) => {
         <div className="flex justify-center w-full p-2 min-h-[80%] max-h-[80%] overflow-y-auto">
           <TaskManager tasks={tasks} />
         </div>
-        <div className="flex flex-col items-center w-full py-0.5 ">
+        <div className="flex flex-col items-center w-full py-0.5">
           {" "}
           {/* NOTE: The py-0.5 smooths the button animation (somehow) */}
           <motion.div

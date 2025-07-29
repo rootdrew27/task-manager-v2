@@ -16,6 +16,11 @@ This is a voice-controlled task management application built with two main compo
 - **Next.js Frontend**: React-based UI with LiveKit components for real-time voice interaction
 - **Database Layer**: Shared Postgres connection between Python backend and Next.js frontend
 
+### Other Components
+
+- **Rate Limiting** A sliding window rate limiter with multiple configurations, using redis.
+- **Logging** File based, and split into multiple categories (see docs/Logging.md)
+
 ## Development Commands
 
 ### Python Backend

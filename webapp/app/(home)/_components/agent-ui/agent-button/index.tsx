@@ -65,7 +65,7 @@ export function AgentButton(props: {
             transition: { duration: 0.1, ease: "easeOut" },
           }}
           onClick={handleOpenModal}
-          className="bg-transparent rounded-full button-wrapper-touch-optimized"
+          className="bg-transparent rounded-full button-wrapper-touch-optimized hover:cursor-auto p-2"
         >
           <motion.button
             whileHover={{

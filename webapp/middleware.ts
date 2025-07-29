@@ -1,3 +1,4 @@
+// edge runtime
 import { auth } from "@/auth";
 import { NextResponse } from "next/server";
 
@@ -8,11 +9,13 @@ export default auth(async (req) => {
     script-src 'self' 'nonce-${nonce}' 'strict-dynamic' ${process.env.NODE_ENV === "development" ? "'unsafe-eval'" : ""};
     style-src 'self' 'unsafe-inline';
     img-src 'self' blob: data:;
+    connect-src 'self' ${process.env.NODE_ENV === "development" ? "ws://localhost:7880" : "wss://localhost:7880"};  
     font-src 'self';
     object-src 'none';
     base-uri 'self';
     form-action 'self';
     frame-ancestors 'none';
+    media-src 'self' blob:;
     upgrade-insecure-requests;
   `;
 
@@ -30,8 +33,6 @@ export default auth(async (req) => {
   });
 
   res.headers.set("Content-Security-Policy", contentSecurityPolicyHeaderValue);
-
-  // const res = NextResponse.next()
 
   // handle guest auth
   if (!req.auth?.id) {
@@ -87,11 +88,7 @@ export default auth(async (req) => {
         });
       }
     } catch (error) {
-      // Log error details internally without exposing to client
-      console.error(
-        "Guest authentication failed:",
-        error instanceof Error ? error.message : "Unknown error"
-      );
+      console.error(error);
       // Continue without setting guest ID - application should handle missing guest gracefully
     }
   }
@@ -102,13 +99,10 @@ export default auth(async (req) => {
 
     if (apiKey !== process.env.INTERNAL_API_KEY) {
       const unauthorizedResponse = NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-      unauthorizedResponse.headers.set("Content-Security-Policy", contentSecurityPolicyHeaderValue);
-      unauthorizedResponse.headers.set("x-nonce", nonce);
       return unauthorizedResponse;
     }
     return res;
   }
-
   return res;
 });
 

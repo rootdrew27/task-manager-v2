@@ -1,10 +1,10 @@
+import { logger } from "@/lib/logger";
+import { addRateLimitHeaders, createRateLimiter } from "@/lib/rate-limiter";
 import { AccessToken, AccessTokenOptions, VideoGrant } from "livekit-server-sdk";
 import { getToken } from "next-auth/jwt";
 import { NextRequest, NextResponse } from "next/server";
 import { v4 as uuidv4 } from "uuid";
-import { createRateLimiter, addRateLimitHeaders } from "@/lib/rate-limiter";
 
-// NOTE: you are expected to define the following environment variables in `.env.local`:
 const API_KEY = process.env.LIVEKIT_API_KEY;
 const API_SECRET = process.env.LIVEKIT_API_SECRET;
 const LIVEKIT_URL = process.env.LIVEKIT_URL;
@@ -12,7 +12,7 @@ const LIVEKIT_URL = process.env.LIVEKIT_URL;
 const AUTH_SECRET = process.env.AUTH_SECRET;
 
 // Single rate limiter instance for this route
-const rateLimiter = createRateLimiter('intensive');
+const rateLimiter = createRateLimiter("intensive");
 
 // don't cache the results
 export const revalidate = 0;
@@ -28,11 +28,19 @@ export async function GET(req: NextRequest) {
   // Apply rate limiting for intensive operations (LiveKit connections)
   try {
     const rateResult = await rateLimiter.check(req);
-    
+
     if (!rateResult.success) {
+      const clientIP = rateLimiter.getClientIP(req);
+      logger.rateLimit("warn", "LiveKit connection rate limit exceeded", {
+        metadata: {
+          clientIP,
+          retryAfter: rateResult.retryAfter,
+          count: rateResult.count,
+        },
+      });
       const response = NextResponse.json(
         {
-          error: 'Too many connection requests. Please try again in a few minutes.',
+          error: "Too many connection requests. Please try again in a few minutes.",
           retryAfter: rateResult.retryAfter,
         },
         { status: 429 }
@@ -40,8 +48,14 @@ export async function GET(req: NextRequest) {
       addRateLimitHeaders(response.headers, rateResult, 10);
       return response;
     }
-
   } catch (error) {
+    logger.rateLimit(
+      "error",
+      `Rate limiting error in LiveKit connection route by ${rateLimiter.getClientIP(req)}`,
+      {
+        metadata: { error: error instanceof Error ? error.message : "Unknown error" },
+      }
+    );
     return new NextResponse("Issue with our rate limiting service", { status: 500 });
   }
 
@@ -84,9 +98,13 @@ export async function GET(req: NextRequest) {
       participantIdentity: participantIdentity,
     };
 
+    logger.livekit("info", "Successfully created LiveKit connection details", {
+      userId: id,
+      metadata: { roomName, serverUrl: data.serverUrl },
+    });
     const response = NextResponse.json(data, {
       headers: {
-      "Cache-Control": "no-store",
+        "Cache-Control": "no-store",
       },
     });
 
@@ -94,20 +112,29 @@ export async function GET(req: NextRequest) {
     try {
       const stats = await rateLimiter.getStats(req);
       const remaining = Math.max(0, 10 - stats.count);
-      addRateLimitHeaders(response.headers, {
-        success: true,
-        count: stats.count,
-        remaining,
-        resetTime: stats.resetTime,
-      }, 10);
+      addRateLimitHeaders(
+        response.headers,
+        {
+          success: true,
+          count: stats.count,
+          remaining,
+          resetTime: stats.resetTime,
+        },
+        10
+      );
     } catch (error) {
-
+      // Continue without headers if there's an error
+      logger.rateLimit("warn", "Issue adding rate limiting headers in LiveKit route", {
+        metadata: { error: error instanceof Error ? error.message : "Unknown error" },
+      });
     }
 
     return response;
   } catch (error) {
     if (error instanceof Error) {
-      console.error(error);
+      logger.livekit("error", "LiveKit connection creation failed", {
+        metadata: { error: error.message },
+      });
       return new NextResponse(error.message, { status: 500 });
     }
   }

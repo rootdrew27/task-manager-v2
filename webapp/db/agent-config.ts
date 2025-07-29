@@ -1,28 +1,49 @@
 import { pool } from "@/db/connect";
 import { validateApiKeys } from "@/lib/agent/setup";
 import { getUserId } from "@/lib/auth/utils";
+import { logger } from "@/lib/logger";
 import { ApiKeyValidity, ApiKeys, SelectedModels } from "@/types/agent";
 
 export async function getSelectedModels(userId: string) {
-  // check if this user has entries for the particular model types
-  const { rows } = await pool.query(
-    `
-    SELECT stt.model AS stt_model, llm.model AS llm_model, tts.model AS tts_model
-      FROM stt FULL OUTER JOIN llm ON stt.user_id = llm.user_id FULL OUTER JOIN tts ON stt.user_id = tts.user_id 
-    WHERE stt.user_id = $1;
-  `,
-    [userId]
-  );
+  try {
+    logger.database("info", "Fetching selected models for user", {
+      userId,
+      metadata: { operation: "getSelectedModels" },
+    });
 
-  const selectedModels = rows[0];
+    // check if this user has entries for the particular model types
+    const { rows } = await pool.query(
+      `
+      SELECT stt.model AS stt_model, llm.model AS llm_model, tts.model AS tts_model
+        FROM stt FULL OUTER JOIN llm ON stt.user_id = llm.user_id FULL OUTER JOIN tts ON stt.user_id = tts.user_id 
+      WHERE stt.user_id = $1;
+    `,
+      [userId]
+    );
 
-  if (!selectedModels) {
-    return null;
+    const selectedModels = rows[0];
+
+    if (!selectedModels) {
+      logger.database("info", "No selected models found for user", {
+        userId,
+        metadata: { operation: "getSelectedModels" },
+      });
+      return null;
+    }
+
+    const { stt_model: stt, llm_model: llm, tts_model: tts } = selectedModels;
+
+    return { stt, llm, tts };
+  } catch (error) {
+    logger.database("error", "Failed to fetch selected models", {
+      userId,
+      metadata: {
+        operation: "getSelectedModels",
+        error: error instanceof Error ? error.message : "Unknown error",
+      },
+    });
+    throw error;
   }
-
-  const { stt_model: stt, llm_model: llm, tts_model: tts } = selectedModels;
-
-  return { stt, llm, tts };
 }
 
 export async function saveModelKeysAndPreferences(
@@ -38,12 +59,12 @@ export async function saveModelKeysAndPreferences(
 
     await client.query(
       `
-            INSERT INTO stt (user_id, provider, key, model)
+            INSERT INTO task_manager.stt (user_id, provider, key, model)
             VALUES ($1, $2, $3, $4)
             ON CONFLICT(user_id)
             DO UPDATE SET
-              provider = EXCLUDED.provider
-              key = EXCLUDED.key
+              provider = EXCLUDED.provider,
+              key = EXCLUDED.key,
               model = EXCLUDED.model;
             `,
       [userId, "deepgram", sttKey, sttModel]
@@ -51,12 +72,12 @@ export async function saveModelKeysAndPreferences(
 
     await client.query(
       `
-            INSERT INTO llm (user_id, provider, key, model)
+            INSERT INTO task_manager.llm (user_id, provider, key, model)
             VALUES ($1, $2, $3, $4)
             ON CONFLICT(user_id)
             DO UPDATE SET
-              proivder = EXCLUDED.provider
-              key = EXCLUDED.key
+              provider = EXCLUDED.provider,
+              key = EXCLUDED.key,
               model = EXCLUDED.model;
             `,
       [userId, "openai", llmKey, llmModel]
@@ -65,12 +86,12 @@ export async function saveModelKeysAndPreferences(
     if (ttsModel) {
       await client.query(
         `
-            INSERT INTO tts (user_id, provider, key, model, active)
+            INSERT INTO task_manager.tts (user_id, provider, key, model, active)
             VALUES ($1, $2, $3, $4, $5)
             ON CONFLICT(user_id)
             DO UPDATE SET
-              provider = EXCLUDED.provider
-              key = EXCLUDED.key
+              provider = EXCLUDED.provider,
+              key = EXCLUDED.key,
               model = EXCLUDED.model;
             `,
         [userId, "cartesia", ttsKey, ttsModel, true]
@@ -79,8 +100,15 @@ export async function saveModelKeysAndPreferences(
     await client.query("COMMIT");
     return { success: true };
   } catch (error) {
-    console.error("Error while adding model keys and prefs to database.", error);
+    logger.database("error", "Failed to save model keys and preferences", {
+      userId,
+      metadata: {
+        operation: "saveModelKeysAndPreferences",
+        error: error instanceof Error ? error.message : "Unknown error",
+      },
+    });
     await client.query("ROLLBACK");
+    throw error;
   } finally {
     client.release();
   }
@@ -90,73 +118,69 @@ export async function updateSelectedModels(userId: string, newModelSelections: S
   const client = await pool.connect();
   const { stt: newSttModel, llm: newLlmModel, tts: newTtsModel } = newModelSelections;
 
-  // check if this user has entries for the particular model types
-  const { rows } = await client.query(
-    `
-    SELECT stt.provider AS stt_provider, llm.provider AS llm_provider, tts.provider AS tts_provider
-      FROM stt FULL OUTER JOIN llm ON stt.user_id = llm.user_id FULL OUTER JOIN tts ON stt.user_id = tts.user_id 
-    WHERE stt.user_id = $1;
-  `,
-    [userId]
-  );
-
-  const modelSelections = rows[0];
-  let hasStt: boolean, hasLlm: boolean, hasTts: boolean;
-  if (!modelSelections) {
-    hasStt = false;
-    hasLlm = false;
-    hasTts = false;
-  } else {
-    hasStt = !!modelSelections.stt_provider;
-    hasLlm = !!modelSelections.llm_provider;
-    hasTts = !!modelSelections.tts_provider;
-  }
-
   try {
+    logger.database("info", "Updating selected models using upsert", {
+      userId,
+      metadata: {
+        operation: "updateSelectedModels",
+        models: { stt: newSttModel, llm: newLlmModel, tts: newTtsModel },
+      },
+    });
+
     await client.query("BEGIN");
 
+    // Use upsert for STT model
     if (newSttModel) {
-      if (hasStt) {
-        // Update STT model
-        await client.query(`UPDATE stt SET model = $1 WHERE user_id = $2`, [newSttModel, userId]);
-      } else {
-        // Insert STT model
-        await client.query(
-          `INSERT INTO stt (user_id, provider, key, model) VALUES ($1, $2, $3, $4);`,
-          [userId, "deepgram", null, newSttModel]
-        );
-      }
+      await client.query(
+        `
+        INSERT INTO task_manager.stt (user_id, provider, key, model)
+        VALUES ($1, $2, $3, $4)
+        ON CONFLICT(user_id)
+        DO UPDATE SET
+          model = EXCLUDED.model;
+        `,
+        [userId, "deepgram", null, newSttModel]
+      );
     }
 
+    // Use upsert for LLM model
     if (newLlmModel) {
-      if (hasLlm) {
-        // Update LLM model
-        await client.query(`UPDATE llm SET model = $1 WHERE user_id = $2`, [newLlmModel, userId]);
-      } else {
-        // Insert LLM model
-        await client.query(
-          `INSERT INTO llm (user_id, provider, key, model) VALUES ($1, $2, $3, $4);`,
-          [userId, "openai", null, newLlmModel]
-        );
-      }
+      await client.query(
+        `
+        INSERT INTO task_manager.llm (user_id, provider, key, model)
+        VALUES ($1, $2, $3, $4)
+        ON CONFLICT(user_id)
+        DO UPDATE SET
+          model = EXCLUDED.model;
+        `,
+        [userId, "openai", null, newLlmModel]
+      );
     }
 
+    // Use upsert for TTS model
     if (newTtsModel || newTtsModel === null) {
-      if (hasTts) {
-        // Update TTS model
-        await client.query(`UPDATE tts SET model = $1 WHERE user_id = $2`, [newTtsModel, userId]);
-      } else {
-        // Insert TTS model
-        await client.query(
-          `INSERT INTO tts (user_id, provider, key, model) VALUES ($1, $2, $3, $4);`,
-          [userId, "cartesia", null, newTtsModel]
-        );
-      }
+      await client.query(
+        `
+        INSERT INTO task_manager.tts (user_id, provider, key, model)
+        VALUES ($1, $2, $3, $4)
+        ON CONFLICT(user_id)
+        DO UPDATE SET
+          model = EXCLUDED.model;
+        `,
+        [userId, "cartesia", null, newTtsModel]
+      );
     }
+
     await client.query("COMMIT");
     return { success: true };
   } catch (error) {
-    console.error("Error while updating model selections in database.", error);
+    logger.database("error", "Failed to update model selections", {
+      userId,
+      metadata: {
+        operation: "updateSelectedModels",
+        error: error instanceof Error ? error.message : "Unknown error",
+      },
+    });
     await client.query("ROLLBACK");
     return { success: false };
   } finally {
@@ -274,7 +298,13 @@ export async function validateConfigByUserId(userId: string) {
 
     return true;
   } catch (error) {
-    console.error(error);
+    logger.database("error", "Failed to validate config by user ID", {
+      userId,
+      metadata: {
+        operation: "validateConfigByUserId",
+        error: error instanceof Error ? error.message : "Unknown error",
+      },
+    });
     throw error;
   }
 }
@@ -326,7 +356,13 @@ export async function saveApiKeys(apiKeys: ApiKeys, userId: string) {
     await client.query("COMMIT");
     return { success: true };
   } catch (error) {
-    console.error("Error while saving API keys to database.", error);
+    logger.database("error", "Failed to save API keys", {
+      userId,
+      metadata: {
+        operation: "saveApiKeys",
+        error: error instanceof Error ? error.message : "Unknown error",
+      },
+    });
     await client.query("ROLLBACK");
     throw error;
   } finally {

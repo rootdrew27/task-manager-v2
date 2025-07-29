@@ -16,16 +16,21 @@ export default function Error({
   }, [error]);
 
   return (
-    <div>
-      <h2>Something went wrong!</h2>
-      <button
-        onClick={
-          // Attempt to recover by trying to re-render the segment
-          () => reset()
-        }
-      >
-        Try again
-      </button>
+    <div className="min-h-screen bg-secondary flex items-center justify-center px-8">
+      <div className="grid gap-4 w-full max-w-md mx-auto">
+        <div className="bg-red-50 border border-red-200 rounded-md p-4">
+          <h2 className="text-red-700 text-lg font-medium mb-2">Something went wrong!</h2>
+          <p className="text-red-700 text-sm mb-4">
+            An unexpected error occurred. Please try again.
+          </p>
+        </div>
+        <button
+          onClick={() => reset()}
+          className="bg-primary rounded-lg p-4 w-full text-oxford-blue font-medium transition-colors hover:bg-primary/90 shadow-black/10 shadow-sm hover:cursor-pointer"
+        >
+          Try again
+        </button>
+      </div>
     </div>
   );
 }
