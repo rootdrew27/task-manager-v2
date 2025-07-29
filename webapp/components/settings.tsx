@@ -1,8 +1,17 @@
 import { ApiKeyValidity, SelectedModels } from "@/types/agent";
 import { motion } from "framer-motion";
+import dynamic from "next/dynamic";
 import { useState } from "react";
 import { GoGear } from "react-icons/go";
-import { SettingsModal } from "./settings-modal";
+
+// Lazy load the settings modal since it's only needed when clicked
+const SettingsModal = dynamic(
+  () => import("./settings-modal").then((mod) => ({ default: mod.SettingsModal })),
+  {
+    loading: () => <div className="" />,
+    ssr: false,
+  }
+);
 
 interface SettingsProps {
   apiKeyValidity: ApiKeyValidity | null;

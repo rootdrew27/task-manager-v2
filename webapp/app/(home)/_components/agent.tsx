@@ -8,12 +8,22 @@ import { ApiKeyValidity, SelectedModels } from "@/types/agent";
 import { RoomContext } from "@livekit/components-react";
 import { motion } from "framer-motion";
 import { Room, RoomEvent } from "livekit-client";
+import dynamic from "next/dynamic";
 import { useCallback, useEffect, useMemo, useState } from "react";
-// import { GiConsoleController } from "react-icons/gi";
-import { SimpleVoiceAssistant } from "./agent-ui";
 import { TaskManager } from "./task-manager";
 import { TranscriptionBox } from "./transcription-box";
 import { TranscriptionButton } from "./transcription-button";
+
+// import { SimpleVoiceAssistant } from "./agent-ui";
+
+// Lazy load the voice assistant UI since it contains heavy LiveKit components
+const SimpleVoiceAssistant = dynamic(
+  () => import("./agent-ui").then((mod) => ({ default: mod.SimpleVoiceAssistant })),
+  {
+    loading: () => <div className=""></div>,
+    ssr: false,
+  }
+);
 
 interface AgentProps {
   initTasks: TaskInfo[];

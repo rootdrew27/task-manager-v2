@@ -1,9 +1,38 @@
 import { ApiKeyValidity, SelectedModels } from "@/types/agent";
 import { motion } from "framer-motion";
+import dynamic from "next/dynamic";
 import React, { Dispatch, SetStateAction, useState } from "react";
 import { HiOutlineSparkles } from "react-icons/hi";
-import { APIKeyValidationModal } from "./api-key-validation-modal";
-import { ModelSelectionModal } from "./model-selection-modal";
+
+// Lazy load modals since they're only needed when user configures agent
+const APIKeyValidationModal = dynamic(
+  () =>
+    import("./api-key-validation-modal").then((mod) => ({ default: mod.APIKeyValidationModal })),
+  {
+    loading: () => (
+      <div className="fixed inset-0 bg-white/70 flex items-center justify-center">
+        <div className="bg-secondary rounded-lg p-8 flex flex-col items-center border-white">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
+        </div>
+      </div>
+    ),
+    ssr: false,
+  }
+);
+
+const ModelSelectionModal = dynamic(
+  () => import("./model-selection-modal").then((mod) => ({ default: mod.ModelSelectionModal })),
+  {
+    loading: () => (
+      <div className="fixed inset-0 bg-white/70 flex items-center justify-center">
+        <div className="bg-secondary rounded-lg p-8 flex flex-col items-center border-white">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
+        </div>
+      </div>
+    ),
+    ssr: false,
+  }
+);
 
 export function AgentButton(props: {
   onConnectButtonClicked: () => void;

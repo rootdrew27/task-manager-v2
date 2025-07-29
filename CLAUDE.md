@@ -38,20 +38,23 @@ python -m agent.agent
 ### Next.js Frontend
 ```bash
 # Install dependencies
-pnpm install
+npm install
 
 # Development server
-pnpm dev
+npm run dev
 
 # Build for production
-pnpm build
+npm run build
+
+# For anaylzing
+npm run analyze
 
 # Linting
-pnpm lint
+npm run lint
 
 # Format code
-pnpm format:check
-pnpm format:write
+npm run format:check
+npm run format:write
 ```
 
 ## Required Environment Setup
