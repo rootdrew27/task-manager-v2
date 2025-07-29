@@ -47,7 +47,29 @@ export default auth(async (req) => {
         });
 
         if (!res2.ok) {
-          throw new Error(`Guest API failed with status ${res2.status}`);
+          const data = await res2.json();
+          // Handle rate limiting specifically
+          if (res2.status === 429) {
+            let retryAfter;
+            if (typeof data.retryAfter !== "number") {
+              retryAfter = "60";
+            } else {
+              retryAfter = data.retryAfter.toString();
+            }
+
+            return new NextResponse(
+              `Rate limit exceeded. Too many guest creation requests. Please try again in ${retryAfter} seconds.`,
+              {
+                status: 429,
+                headers: {
+                  "Retry-After": retryAfter,
+                  "Content-Type": "text/plain",
+                },
+              }
+            );
+          }
+
+          throw new Error(`Guest API failed with status ${res2.status}.`);
         }
 
         const data = await res2.json();

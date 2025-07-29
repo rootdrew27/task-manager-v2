@@ -2,6 +2,7 @@ import { AccessToken, AccessTokenOptions, VideoGrant } from "livekit-server-sdk"
 import { getToken } from "next-auth/jwt";
 import { NextRequest, NextResponse } from "next/server";
 import { v4 as uuidv4 } from "uuid";
+import { createRateLimiter, addRateLimitHeaders } from "@/lib/rate-limiter";
 
 // NOTE: you are expected to define the following environment variables in `.env.local`:
 const API_KEY = process.env.LIVEKIT_API_KEY;
@@ -9,6 +10,9 @@ const API_SECRET = process.env.LIVEKIT_API_SECRET;
 const LIVEKIT_URL = process.env.LIVEKIT_URL;
 
 const AUTH_SECRET = process.env.AUTH_SECRET;
+
+// Single rate limiter instance for this route
+const rateLimiter = createRateLimiter('intensive');
 
 // don't cache the results
 export const revalidate = 0;
@@ -21,6 +25,26 @@ export type ConnectionDetails = {
 };
 
 export async function GET(req: NextRequest) {
+  // Apply rate limiting for intensive operations (LiveKit connections)
+  try {
+    const rateResult = await rateLimiter.check(req);
+    
+    if (!rateResult.success) {
+      const response = NextResponse.json(
+        {
+          error: 'Too many connection requests. Please try again in a few minutes.',
+          retryAfter: rateResult.retryAfter,
+        },
+        { status: 429 }
+      );
+      addRateLimitHeaders(response.headers, rateResult, 10);
+      return response;
+    }
+
+  } catch (error) {
+    return new NextResponse("Issue with our rate limiting service", { status: 500 });
+  }
+
   try {
     if (LIVEKIT_URL === undefined) {
       throw new Error("LIVEKIT_URL is not defined");
@@ -59,10 +83,28 @@ export async function GET(req: NextRequest) {
       participantToken: participantToken,
       participantIdentity: participantIdentity,
     };
-    const headers = new Headers({
+
+    const response = NextResponse.json(data, {
+      headers: {
       "Cache-Control": "no-store",
+      },
     });
-    return NextResponse.json(data, { headers });
+
+    // Add rate limit headers to successful responses
+    try {
+      const stats = await rateLimiter.getStats(req);
+      const remaining = Math.max(0, 10 - stats.count);
+      addRateLimitHeaders(response.headers, {
+        success: true,
+        count: stats.count,
+        remaining,
+        resetTime: stats.resetTime,
+      }, 10);
+    } catch (error) {
+
+    }
+
+    return response;
   } catch (error) {
     if (error instanceof Error) {
       console.error(error);
