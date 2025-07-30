@@ -35,7 +35,7 @@ export default auth(async (req) => {
   res.headers.set("Content-Security-Policy", contentSecurityPolicyHeaderValue);
 
   // handle guest auth
-  if (!req.auth?.id) {
+  if (!req.auth?.id && req.nextUrl.pathname === "/") {
     try {
       const guestId = req.cookies.get("guest_id")?.value;
       if (!guestId) {

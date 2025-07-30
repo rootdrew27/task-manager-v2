@@ -19,7 +19,7 @@ export default async function Page() {
   }
 
   const initTasks = await getTasksByUserId(id);
-  const result = await getSelectedModelsAndValidatedApiKeys(id); // note: if api keys are deemed valid, both the stt and llm key will be set.
+  const result = await getSelectedModelsAndValidatedApiKeys(id);
 
   const selectedModels = result?.selectedModels ?? null;
   const apiKeyValidity = result?.apiKeyValidity ?? null;

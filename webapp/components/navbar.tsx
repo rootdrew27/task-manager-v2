@@ -10,7 +10,7 @@ interface NavbarProps {
 export function Navbar({ session }: NavbarProps) {
   const handleSignOut = async () => {
     "use server";
-    await signOut();
+    await signOut({ redirect: false });
   };
 
   const handleSignIn = async () => {

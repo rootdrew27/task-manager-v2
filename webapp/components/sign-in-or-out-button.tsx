@@ -11,6 +11,12 @@ interface SignInOrOutButtonProps {
 }
 
 export function SignInOrOutButton(props: SignInOrOutButtonProps) {
+  const handleSignOut = async () => {
+    await props.handleSignOut();
+    // Force a hard refresh to clear all cache and state
+    window.location.href = "/";
+  };
+
   return (
     <motion.div
       transition={{ delay: 1 }}
@@ -23,7 +29,7 @@ export function SignInOrOutButton(props: SignInOrOutButtonProps) {
           scale: 0.8,
           transition: { duration: 0.1, ease: "easeOut" },
         }}
-        onTapStart={props.isSignedIn ? props.handleSignOut : props.handleSignIn}
+        onTapStart={props.isSignedIn ? handleSignOut : props.handleSignIn}
         className="bg-transparent rounded-full p-1 button-wrapper-touch-optimized"
         tabIndex={-1}
       >
