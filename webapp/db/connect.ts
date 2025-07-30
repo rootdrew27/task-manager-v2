@@ -9,6 +9,11 @@ declare module "pg" {
 
 // Create pool with connection logging
 export const pool = new Pool({
+  user: process.env.PG_USER,
+  password: process.env.PG_PASSWORD,
+  host: process.env.PG_HOST,
+  port: parseInt(process.env.PG_PORT || "5432"),
+  database: process.env.PG_DATABASE,
   idleTimeoutMillis: 30000,
   log: (message: string) => {
     logger.database("debug", "PostgreSQL connection pool message", {

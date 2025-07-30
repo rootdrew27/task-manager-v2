@@ -168,21 +168,38 @@ class AllModelConfig(BaseModel):
 
 
 async def getAgentConfig(user_id: str):
+    encryption_key = os.environ.get("PG_ENCRYPTION_KEY")
+    if not encryption_key:
+        raise Exception(
+            "PG_ENCRYPTION_KEY environment variable is required for API key decryption"
+        )
+
     async with pool.connection() as conn:
         async with conn.cursor(row_factory=class_row(AllModelConfig)) as cur:
             try:
                 query = """
-                    SELECT stt.provider AS stt_provider, stt.key AS stt_key, stt.model AS stt_model, llm.provider AS llm_provider, llm.key AS llm_key, llm.model AS llm_model, tts.provider AS tts_provider, tts.key AS tts_key, tts.model AS tts_model
-                    FROM stt JOIN llm ON stt.user_id = llm.user_id LEFT JOIN tts ON stt.user_id = tts.user_id 
+                    SELECT stt.provider AS stt_provider, 
+                           task_manager.decrypt_api_key(stt.key, %s) AS stt_key, 
+                           stt.model AS stt_model, 
+                           llm.provider AS llm_provider, 
+                           task_manager.decrypt_api_key(llm.key, %s) AS llm_key, 
+                           llm.model AS llm_model, 
+                           tts.provider AS tts_provider, 
+                           task_manager.decrypt_api_key(tts.key, %s) AS tts_key, 
+                           tts.model AS tts_model
+                    FROM stt JOIN llm ON stt.user_id = llm.user_id 
+                    LEFT JOIN tts ON stt.user_id = tts.user_id 
                     WHERE stt.user_id = %s;
                     """
-                await cur.execute(query, (user_id,))
+                await cur.execute(
+                    query, (encryption_key, encryption_key, encryption_key, user_id)
+                )
                 agent_config = await cur.fetchone()
                 if agent_config is None:
                     raise Exception("No result returned.")
                 return agent_config
             except Exception as ex:
                 logger.error(
-                    "An unknown exception occurred in getAgentConfig.\nError Type: {type(ex)}.\nError: {ex}.\n"
+                    f"An unknown exception occurred in getAgentConfig.\nError Type: {type(ex)}.\nError: {ex}.\n"
                 )
                 raise ex

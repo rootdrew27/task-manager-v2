@@ -61,35 +61,36 @@ npm run format:write
 
 Create `.env.local` in the root directory:
 ```
-LIVEKIT_URL="ws://localhost:7880"
-LIVEKIT_API_KEY="devkey"
-LIVEKIT_API_SECRET="secret"
-DEEPGRAM_API_KEY="<your_deepgram_key>"
-OPENAI_API_KEY="<your_api_key>"
+LIVEKIT_URL="ws://<hostname>:<port>"
+LIVEKIT_API_KEY=<api_key>
+LIVEKIT_API_SECRET=<api_secret>
 ```
 
 ## Database Configuration
 
-- MongoDB running on `localhost:27017`
-- Database name: `task-management`
-- Collection: `tasks`
+- Postgresql running on `localhost:5432`
+- Database name: `postgres`
+- Schema name: `task_manager`
 - No authentication required for local development
 
 ## Key File Locations
 
 - **Agent Entry Point**: `agent/agent.py`
 - **Database Operations**: `agent/db.py` (Python) and `webapp/db/tasks.ts` (TypeScript)
-- **Custom Types**: `agent/custom_types.py`
+- **Custom Types**: `agent/custom_types.py` and `types/`
 - **Frontend Main Page**: `webapp/app/(home)/page.tsx`
+- **Frontend Main Component**: `webapp/app/(home)/_components/agent.tsx`
 - **LiveKit Connection**: `webapp/app/api/connection-details/route.ts`
 
 ## Agent Tool Functions
 
 The voice assistant supports these operations:
-- `create_task`: Add new tasks with optional deadline and description
-- `edit_task`: Modify existing tasks (name, completion status, deadline, description)
+- `create_task`: Add new tasks
+- `edit_task`: Modify existing tasks 
 - `delete_task`: Remove tasks from the list
 - `invalid_request`: Handle non-task-related requests
+
+- Task are comprised of the following: name, completion status, deadline, description
 
 ## Testing
 
@@ -97,20 +98,18 @@ No specific test framework is configured. Check for test files in the codebase b
 
 ## Development Notes
 
-- The agent uses case-insensitive task name matching
-- Task names are limited to 38 characters, descriptions to 128 characters
 - Frontend uses npm as package manager
 - LiveKit server must be running before starting the agent
 
 ## Authentication
 - JWT Strategy
-- Providers include: Google, Twitter
+- Providers include: Google
 
 ## API Key Validation
-1. If a user attempts to activate an agent, a modal will appear and they will be prompted to enter their API keys (for Deepgram, OpenAI, and Cartesia): The Cartesia key will be optional.
+1. If a user attempts to activate an agent, and they have not previously set their api keys or model selections, a modal will appear and they will be prompted to enter their API keys for the folliowng providers: Deepgram, OpenAI, and Cartesia. The Cartesia key will be optional.
 
-2. After each api key entry, and validation, users will be able to select a model from a dropdown. The dropdowns will be populated with predetermined options.
+2. After api keys are validated, a new modal appears and users will be able to select a model, for each provider, from a dropdown.
 
-3. After validation is complete, their agent will be activated.
+3. After the final validation is complete, their agent will be activated.
 
-4. If they sign in, their api keys, and model preferences will be retained.
+4. If they are signed in, their api keys, and model preferences will be saved.

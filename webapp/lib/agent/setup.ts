@@ -3,9 +3,10 @@
 import {
   saveApiKeys,
   saveModelKeysAndPreferences,
-  updateSelectedModels,
   validateConfigByUserId,
 } from "@/db/agent-config";
+import { upsertSelectedModels } from "@/db/agent-config";
+import * as agentConfigDB from "@/db/agent-config";
 import { pool } from "@/db/connect";
 import { ApiKeys, ConfigurationResult, SelectedModels, SetupData } from "@/types/agent";
 import { OpenAI } from "openai";
@@ -14,7 +15,7 @@ import { getUserId } from "../auth/utils";
 const VALID_MODELS = {
   openai: ["gpt-4o", "gpt-4o-mini", "gpt-3.5-turbo"],
   deepgram: ["nova-3", "nova-2", "nova", "whisper-large"],
-  cartesia: ["sonic-english", "sonic-multilingual"],
+  cartesia: ["sonic-english"],
 };
 
 async function validateOpenAIKey(apiKey: string): Promise<{ isValid: boolean; error?: string }> {
@@ -69,10 +70,10 @@ async function validateCartesiaKey(apiKey: string): Promise<{ isValid: boolean; 
   }
 }
 
-function validateSelectedModels(selectedModels: SelectedModels): {
-  isValid: boolean;
+export async function validateSelectedModels(selectedModels: SelectedModels): Promise<{
+  success: boolean;
   errors?: string[];
-} {
+}> {
   const errors: string[] = [];
 
   if (!selectedModels.llm || !VALID_MODELS.openai.includes(selectedModels.llm)) {
@@ -86,7 +87,7 @@ function validateSelectedModels(selectedModels: SelectedModels): {
     errors.push(`Invalid Cartesia model`);
   }
 
-  return { isValid: errors.length === 0, errors: errors.length > 0 ? errors : undefined };
+  return { success: errors.length === 0, errors: errors.length > 0 ? errors : undefined };
 }
 
 export async function validateAndSaveApiKeys(apiKeys: ApiKeys) {
@@ -190,32 +191,13 @@ export async function validateApiKeys(apiKeys: ApiKeys) {
   };
 }
 
-export async function saveSelectedModels(selectedModels: SelectedModels) {
-  try {
-    const result = validateSelectedModels(selectedModels);
-
-    if (!result.isValid) {
-      return result;
-    }
-
-    const userId = await getUserId();
-
-    await updateSelectedModels(userId, selectedModels);
-
-    return result;
-  } catch (error) {
-    console.error(error);
-    return { isValid: false, errors: ["Unknown error occurred."] };
-  }
-}
-
 export async function saveConfiguration(data: SetupData): Promise<ConfigurationResult> {
   const { apiKeys, selectedModels } = data;
   const errors: string[] = [];
 
   // Validate model selections
-  const modelValidation = validateSelectedModels(selectedModels);
-  if (!modelValidation.isValid && modelValidation.errors) {
+  const modelValidation = await validateSelectedModels(selectedModels);
+  if (!modelValidation.success && modelValidation.errors) {
     errors.push(...modelValidation.errors);
   }
 
@@ -277,5 +259,47 @@ export async function clearAllApiKeys(): Promise<{ success: boolean; error?: str
   } catch (error) {
     console.error("Error clearing API keys:", error);
     return { success: false, error: "Failed to clear API keys" };
+  }
+}
+
+export async function getSelectedModels(userId?: string): Promise<SelectedModels | null> {
+  try {
+    if (!userId) {
+      userId = await getUserId();
+      if (!userId) {
+        throw new Error("No user!");
+      }
+    }
+    return await agentConfigDB.getSelectedModels(userId);
+  } catch (error) {
+    console.error(error);
+    throw error;
+  }
+}
+
+export async function updateUserConfiguration(
+  selectedModels: SelectedModels
+): Promise<{ success: boolean; errors?: string[] }> {
+  try {
+    const userId = await getUserId();
+    const result = await upsertSelectedModels(userId, selectedModels);
+
+    return { success: result.success };
+  } catch (error) {
+    console.error("Failed to update user configuration:", error);
+    return {
+      success: false,
+      errors: ["Failed to update configuration. Please try again."],
+    };
+  }
+}
+
+export async function validateCurrentApiKeys() {
+  const userId = await getUserId();
+
+  try {
+    return agentConfigDB.validateCurrentApiKeys(userId);
+  } catch (error) {
+    throw error;
   }
 }

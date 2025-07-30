@@ -1,8 +1,18 @@
 import { pool } from "@/db/connect";
-import { validateApiKeys } from "@/lib/agent/setup";
-import { getUserId } from "@/lib/auth/utils";
+import { validateApiKeys, validateSelectedModels } from "@/lib/agent/setup";
 import { logger } from "@/lib/logger";
 import { ApiKeyValidity, ApiKeys, SelectedModels } from "@/types/agent";
+
+/**
+ * Get the encryption key from environment variables
+ */
+function getEncryptionKey(): string {
+  const key = process.env.PG_ENCRYPTION_KEY;
+  if (!key) {
+    throw new Error("PG_ENCRYPTION_KEY environment variable is required for API key encryption");
+  }
+  return key;
+}
 
 export async function getSelectedModels(userId: string) {
   try {
@@ -60,41 +70,41 @@ export async function saveModelKeysAndPreferences(
     await client.query(
       `
             INSERT INTO task_manager.stt (user_id, provider, key, model)
-            VALUES ($1, $2, $3, $4)
+            VALUES ($1, $2, task_manager.encrypt_api_key($3, $4), $5)
             ON CONFLICT(user_id)
             DO UPDATE SET
               provider = EXCLUDED.provider,
-              key = EXCLUDED.key,
+              key = task_manager.encrypt_api_key(EXCLUDED.key, $4),
               model = EXCLUDED.model;
             `,
-      [userId, "deepgram", sttKey, sttModel]
+      [userId, "deepgram", sttKey, getEncryptionKey(), sttModel]
     );
 
     await client.query(
       `
             INSERT INTO task_manager.llm (user_id, provider, key, model)
-            VALUES ($1, $2, $3, $4)
+            VALUES ($1, $2, task_manager.encrypt_api_key($3, $4), $5)
             ON CONFLICT(user_id)
             DO UPDATE SET
               provider = EXCLUDED.provider,
-              key = EXCLUDED.key,
+              key = task_manager.encrypt_api_key(EXCLUDED.key, $4),
               model = EXCLUDED.model;
             `,
-      [userId, "openai", llmKey, llmModel]
+      [userId, "openai", llmKey, getEncryptionKey(), llmModel]
     );
 
     if (ttsModel) {
       await client.query(
         `
             INSERT INTO task_manager.tts (user_id, provider, key, model, active)
-            VALUES ($1, $2, $3, $4, $5)
+            VALUES ($1, $2, task_manager.encrypt_api_key($3, $4), $5, $6)
             ON CONFLICT(user_id)
             DO UPDATE SET
               provider = EXCLUDED.provider,
-              key = EXCLUDED.key,
+              key = task_manager.encrypt_api_key(EXCLUDED.key, $4),
               model = EXCLUDED.model;
             `,
-        [userId, "cartesia", ttsKey, ttsModel, true]
+        [userId, "cartesia", ttsKey, getEncryptionKey(), ttsModel, true]
       );
     }
     await client.query("COMMIT");
@@ -114,7 +124,13 @@ export async function saveModelKeysAndPreferences(
   }
 }
 
-export async function updateSelectedModels(userId: string, newModelSelections: SelectedModels) {
+export async function upsertSelectedModels(userId: string, newModelSelections: SelectedModels) {
+  const result = await validateSelectedModels(newModelSelections);
+
+  if (!result.success) {
+    return result;
+  }
+
   const client = await pool.connect();
   const { stt: newSttModel, llm: newLlmModel, tts: newTtsModel } = newModelSelections;
 
@@ -192,17 +208,22 @@ export async function getSelectedModelsAndValidatedApiKeys(userId: string) {
   try {
     const { rows } = await pool.query(
       `
-      SELECT stt.model AS stt_model, stt.key AS stt_key, llm.model AS llm_model, llm.key AS llm_key, tts.model AS tts_model, tts.key AS tts_key
+      SELECT stt.model AS stt_model, 
+             task_manager.decrypt_api_key(stt.key, $2) AS stt_key, 
+             llm.model AS llm_model, 
+             task_manager.decrypt_api_key(llm.key, $2) AS llm_key, 
+             tts.model AS tts_model, 
+             task_manager.decrypt_api_key(tts.key, $2) AS tts_key
       FROM stt FULL OUTER JOIN llm ON stt.user_id = llm.user_id
       FULL OUTER JOIN tts ON stt.user_id = tts.user_id
       WHERE stt.user_id = $1;
       `,
-      [userId]
+      [userId, getEncryptionKey()]
     );
 
-    const modelSelections = rows[0];
+    const result = rows[0];
 
-    if (!modelSelections) {
+    if (!result) {
       return null;
     }
 
@@ -238,7 +259,9 @@ export async function validateCurrentApiKeys(userId: string) {
   try {
     const { rows } = await pool.query(
       `
-      SELECT stt.key as stt_key, llm.key as llm_key, tts.key as tts_key
+      SELECT CASE WHEN stt.key IS NOT NULL THEN 'true' ELSE 'false' END as stt_key, 
+             CASE WHEN llm.key IS NOT NULL THEN 'true' ELSE 'false' END as llm_key, 
+             CASE WHEN tts.key IS NOT NULL THEN 'true' ELSE 'false' END as tts_key
         FROM stt FULL OUTER JOIN llm ON stt.user_id = llm.user_id FULL OUTER JOIN tts ON stt.user_id = tts.user_id
       WHERE stt.user_id = $1;
     `,
@@ -252,9 +275,9 @@ export async function validateCurrentApiKeys(userId: string) {
     }
 
     return {
-      stt: result.stt_key ? true : false,
-      llm: result.llm_key ? true : false,
-      tts: result.tts_key ? true : false,
+      stt: result.stt_key === "true",
+      llm: result.llm_key === "true",
+      tts: result.tts_key === "true",
     } as ApiKeyValidity;
   } catch (error) {
     throw error;
@@ -265,12 +288,17 @@ export async function validateConfigByUserId(userId: string) {
   try {
     const { rows } = await pool.query(
       `
-      SELECT stt.model AS stt_model, stt.key AS stt_key, llm.model AS llm_model, llm.key AS llm_key, tts.model AS tts_model, tts.key AS tts_key
+      SELECT stt.model AS stt_model, 
+             task_manager.decrypt_api_key(stt.key, $2) AS stt_key, 
+             llm.model AS llm_model, 
+             task_manager.decrypt_api_key(llm.key, $2) AS llm_key, 
+             tts.model AS tts_model, 
+             task_manager.decrypt_api_key(tts.key, $2) AS tts_key
       FROM stt JOIN llm ON stt.user_id = llm.user_id
       LEFT JOIN tts ON stt.user_id = tts.user_id
       WHERE stt.user_id = $1;
       `,
-      [userId]
+      [userId, getEncryptionKey()]
     );
 
     const config = rows[0];
@@ -318,12 +346,12 @@ export async function saveApiKeys(apiKeys: ApiKeys, userId: string) {
       await client.query(
         `
         INSERT INTO stt (user_id, provider, key)
-        VALUES ($1, $2, $3)
+        VALUES ($1, $2, task_manager.encrypt_api_key($3, $4))
         ON CONFLICT(user_id)
         DO UPDATE SET
-          key = EXCLUDED.key
+          key = task_manager.encrypt_api_key(EXCLUDED.key, $4)
       `,
-        [userId, "deepgram", apiKeys.deepgram]
+        [userId, "deepgram", apiKeys.deepgram, getEncryptionKey()]
       );
     }
 
@@ -331,12 +359,12 @@ export async function saveApiKeys(apiKeys: ApiKeys, userId: string) {
       await client.query(
         `
         INSERT INTO llm (user_id, provider, key)
-        VALUES ($1, $2, $3)
+        VALUES ($1, $2, task_manager.encrypt_api_key($3, $4))
         ON CONFLICT(user_id)
         DO UPDATE SET
-          key = EXCLUDED.key
+          key = task_manager.encrypt_api_key(EXCLUDED.key, $4)
       `,
-        [userId, "openai", apiKeys.openai]
+        [userId, "openai", apiKeys.openai, getEncryptionKey()]
       );
     }
 
@@ -344,12 +372,12 @@ export async function saveApiKeys(apiKeys: ApiKeys, userId: string) {
       await client.query(
         `
         INSERT INTO tts (user_id, provider, key)
-        VALUES ($1, $2, $3)
+        VALUES ($1, $2, task_manager.encrypt_api_key($3, $4))
         ON CONFLICT(user_id)
         DO UPDATE SET
-          key = EXCLUDED.key
+          key = task_manager.encrypt_api_key(EXCLUDED.key, $4)
       `,
-        [userId, "cartesia", apiKeys.cartesia]
+        [userId, "cartesia", apiKeys.cartesia, getEncryptionKey()]
       );
     }
 
