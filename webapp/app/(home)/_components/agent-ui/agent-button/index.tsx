@@ -50,7 +50,7 @@ export function AgentButton(props: {
     )
   );
 
-  const areAPIKeysValid = (props.apiKeyValidity?.stt && props.apiKeyValidity.llm) ?? false;
+  const areAPIKeysValid = !!(props.apiKeyValidity?.stt && props.apiKeyValidity.llm);
 
   const onCompleteConfig = () => {
     // setIsValidConfig(true);

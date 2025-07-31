@@ -8,6 +8,7 @@ import {
 import { upsertSelectedModels } from "@/db/agent-config";
 import * as agentConfigDB from "@/db/agent-config";
 import { pool } from "@/db/connect";
+import { logger } from "@/lib/logger";
 import { ApiKeys, ConfigurationResult, SelectedModels, SetupData } from "@/types/agent";
 import { OpenAI } from "openai";
 import { getUserId } from "../auth/utils";
@@ -24,7 +25,12 @@ async function validateOpenAIKey(apiKey: string): Promise<{ isValid: boolean; er
     await client.models.list();
     return { isValid: true };
   } catch (error) {
-    console.error("Error while validating OpenAI API Key. ", error);
+    logger.agentConfig("error", "Error while validating OpenAI API Key", {
+      metadata: {
+        operation: "validateOpenAIKey",
+        error: error instanceof Error ? error.message : String(error),
+      },
+    });
     return { isValid: false, error: "Invalid OpenAI API key" };
   }
 }
@@ -44,7 +50,12 @@ async function validateDeepgramKey(apiKey: string): Promise<{ isValid: boolean; 
 
     return { isValid: true };
   } catch (error) {
-    console.error("Error while validating Deepgram API Key. ", error);
+    logger.agentConfig("error", "Error while validating Deepgram API Key", {
+      metadata: {
+        operation: "validateDeepgramKey",
+        error: error instanceof Error ? error.message : String(error),
+      },
+    });
     return { isValid: false, error: "Failed to validate Deepgram API key" };
   }
 }
@@ -65,7 +76,12 @@ async function validateCartesiaKey(apiKey: string): Promise<{ isValid: boolean; 
 
     return { isValid: true };
   } catch (error) {
-    console.error("Error while validating Cartesia API Key. ", error);
+    logger.agentConfig("error", "Error while validating Cartesia API Key", {
+      metadata: {
+        operation: "validateCartesiaKey",
+        error: error instanceof Error ? error.message : String(error),
+      },
+    });
     return { isValid: false, error: "Failed to validate Cartesia API key" };
   }
 }
@@ -91,6 +107,7 @@ export async function validateSelectedModels(selectedModels: SelectedModels): Pr
 }
 
 export async function validateAndSaveApiKeys(apiKeys: ApiKeys) {
+  const userId = await getUserId();
   try {
     const { validatedServices, errors } = await validateApiKeys(apiKeys);
 
@@ -102,8 +119,6 @@ export async function validateAndSaveApiKeys(apiKeys: ApiKeys) {
     const openaiKeyToSave = validatedServices.includes("openai") ? apiKeys.openai : undefined;
     const cartesiaKeyToSave = validatedServices.includes("cartesia") ? apiKeys.cartesia : undefined;
 
-    const userId = await getUserId();
-
     const apiKeysToSave: ApiKeys = {
       deepgram: deepgramKeyToSave,
       openai: openaiKeyToSave,
@@ -114,7 +129,13 @@ export async function validateAndSaveApiKeys(apiKeys: ApiKeys) {
 
     return { isValid: true, validatedServices };
   } catch (error) {
-    console.error(error);
+    logger.agentConfig("error", "Error during API key validation and saving", {
+      metadata: {
+        operation: "validateAndSaveApiKeys",
+        userId: userId,
+        error: error instanceof Error ? error.message : String(error),
+      },
+    });
     return { isValid: false, errors: ["Unknown error occurred."] };
   }
 }
@@ -206,8 +227,13 @@ export async function saveConfiguration(data: SetupData): Promise<ConfigurationR
   if (isValid) {
     const userId = await getUserId();
     await saveModelKeysAndPreferences(userId, apiKeys, selectedModels);
-    console.log('Configuration "saved" successfully');
-    console.log("Selected models:", selectedModels);
+    logger.agentConfig("info", "Configuration saved successfully", {
+      userId,
+      metadata: {
+        operation: "saveConfiguration",
+        selectedModels,
+      },
+    });
   }
 
   return {
@@ -227,18 +253,23 @@ export async function validateConfig(userId?: string) {
 
     return await validateConfigByUserId(userId);
   } catch (error) {
-    console.error(error);
+    logger.agentConfig("error", "Error during config validation", {
+      metadata: {
+        operation: "validateConfig",
+        userId,
+        error: error instanceof Error ? error.message : String(error),
+      },
+    });
     throw error;
   }
 }
 
 export async function clearAllApiKeys(): Promise<{ success: boolean; error?: string }> {
+  const userId = await getUserId();
+  if (!userId) {
+    return { success: false, error: "User not found" };
+  }
   try {
-    const userId = await getUserId();
-    if (!userId) {
-      return { success: false, error: "User not found" };
-    }
-
     const client = await pool.connect();
     try {
       await client.query("BEGIN");
@@ -257,7 +288,13 @@ export async function clearAllApiKeys(): Promise<{ success: boolean; error?: str
       client.release();
     }
   } catch (error) {
-    console.error("Error clearing API keys:", error);
+    logger.agentConfig("error", "Error clearing API keys", {
+      metadata: {
+        operation: "clearAllApiKeys",
+        userId: userId,
+        error: error instanceof Error ? error.message : String(error),
+      },
+    });
     return { success: false, error: "Failed to clear API keys" };
   }
 }
@@ -272,7 +309,13 @@ export async function getSelectedModels(userId?: string): Promise<SelectedModels
     }
     return await agentConfigDB.getSelectedModels(userId);
   } catch (error) {
-    console.error(error);
+    logger.agentConfig("error", "Error getting selected models", {
+      metadata: {
+        operation: "getSelectedModels",
+        userId,
+        error: error instanceof Error ? error.message : String(error),
+      },
+    });
     throw error;
   }
 }
@@ -280,13 +323,20 @@ export async function getSelectedModels(userId?: string): Promise<SelectedModels
 export async function updateUserConfiguration(
   selectedModels: SelectedModels
 ): Promise<{ success: boolean; errors?: string[] }> {
+  const userId = await getUserId();
   try {
-    const userId = await getUserId();
     const result = await upsertSelectedModels(userId, selectedModels);
 
     return { success: result.success };
   } catch (error) {
-    console.error("Failed to update user configuration:", error);
+    logger.agentConfig("error", "Failed to update user configuration", {
+      metadata: {
+        operation: "updateUserConfiguration",
+        userId,
+        selectedModels,
+        error: error instanceof Error ? error.message : String(error),
+      },
+    });
     return {
       success: false,
       errors: ["Failed to update configuration. Please try again."],

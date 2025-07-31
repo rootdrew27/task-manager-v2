@@ -12,7 +12,8 @@ export type LogCategory =
   | "security"
   | "errors"
   | "performance"
-  | "audit";
+  | "audit"
+  | "agent-config";
 
 interface LogEntry {
   timestamp: string;
@@ -162,6 +163,14 @@ class Logger {
     options?: { metadata?: Record<string, any>; userId?: string; requestId?: string }
   ) {
     this.log(level, "audit", message, options);
+  }
+
+  public agentConfig(
+    level: LogLevel,
+    message: string,
+    options?: { metadata?: Record<string, any>; userId?: string; requestId?: string }
+  ) {
+    this.log(level, "agent-config", message, options);
   }
 }
 

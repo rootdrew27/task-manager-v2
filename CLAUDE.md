@@ -19,7 +19,8 @@ This is a voice-controlled task management application built with two main compo
 ### Other Components
 
 - **Rate Limiting** A sliding window rate limiter with multiple configurations, using redis.
-- **Logging** File based, and split into multiple categories (see docs/Logging.md)
+- **Logging** File based, and split into multiple categories (see docs/Logging.md). Enhanced structured logging for agent configuration operations.
+- **Development Scripts** Utility scripts in `/scripts/` for maintenance and development automation
 
 ## Development Commands
 
@@ -57,6 +58,12 @@ npm run format:check
 npm run format:write
 ```
 
+### Development Scripts
+```bash
+# Update CLAUDE.md based on staged git changes
+./scripts/update-memory.sh
+```
+
 ## Required Environment Setup
 
 Create `.env.local` in the root directory:
@@ -64,6 +71,7 @@ Create `.env.local` in the root directory:
 LIVEKIT_URL="ws://<hostname>:<port>"
 LIVEKIT_API_KEY=<api_key>
 LIVEKIT_API_SECRET=<api_secret>
+PG_ENCRYPTION_KEY=<encryption_key_for_api_keys>
 ```
 
 ## Database Configuration
@@ -72,11 +80,13 @@ LIVEKIT_API_SECRET=<api_secret>
 - Database name: `postgres`
 - Schema name: `task_manager`
 - No authentication required for local development
+- Uses pgcrypto extension for symmetric encryption of stored API keys
+- `encrypt_api_key()` and `decrypt_api_key()` functions available in `task_manager` schema
 
 ## Key File Locations
 
 - **Agent Entry Point**: `agent/agent.py`
-- **Database Operations**: `agent/db.py` (Python) and `webapp/db/tasks.ts` (TypeScript)
+- **Database Operations**: `agent/db.py` (Python), `webapp/db/tasks.ts` (Tasks), and `webapp/db/agent-config.ts` (API Keys and Model Selection)
 - **Custom Types**: `agent/custom_types.py` and `types/`
 - **Frontend Main Page**: `webapp/app/(home)/page.tsx`
 - **Frontend Main Component**: `webapp/app/(home)/_components/agent.tsx`
