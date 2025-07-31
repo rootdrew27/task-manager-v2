@@ -6,7 +6,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { updateUserConfiguration } from "@/lib/agent/user-config";
+import { updateUserConfiguration } from "@/lib/agent/setup";
 import { SelectedModels } from "@/types/agent";
 import { useEffect, useState } from "react";
 import { Button } from "../ui/button";

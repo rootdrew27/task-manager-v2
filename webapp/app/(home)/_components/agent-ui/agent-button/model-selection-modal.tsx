@@ -14,7 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { saveSelectedModels } from "@/lib/agent/setup";
+import { updateUserConfiguration } from "@/lib/agent/setup";
 import { SelectedModels } from "@/types/agent";
 import { useState } from "react";
 
@@ -63,13 +63,13 @@ export function ModelSelectionModal({
     setErrors([]);
 
     try {
-      const result = await saveSelectedModels({
+      const result = await updateUserConfiguration({
         stt: selectedDeepgramModel,
         llm: selectedOpenaiModel,
         tts: selectedCartesiaModel,
       });
 
-      if (result.isValid) {
+      if (result.success) {
         onComplete();
       } else {
         setErrors(result.errors || ["Unknown validation error"]);

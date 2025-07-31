@@ -74,7 +74,7 @@ export async function saveModelKeysAndPreferences(
             ON CONFLICT(user_id)
             DO UPDATE SET
               provider = EXCLUDED.provider,
-              key = task_manager.encrypt_api_key(EXCLUDED.key, $4),
+              key = EXCLUDED.key,
               model = EXCLUDED.model;
             `,
       [userId, "deepgram", sttKey, getEncryptionKey(), sttModel]
@@ -87,7 +87,7 @@ export async function saveModelKeysAndPreferences(
             ON CONFLICT(user_id)
             DO UPDATE SET
               provider = EXCLUDED.provider,
-              key = task_manager.encrypt_api_key(EXCLUDED.key, $4),
+              key = EXCLUDED.key,
               model = EXCLUDED.model;
             `,
       [userId, "openai", llmKey, getEncryptionKey(), llmModel]
@@ -96,14 +96,14 @@ export async function saveModelKeysAndPreferences(
     if (ttsModel) {
       await client.query(
         `
-            INSERT INTO task_manager.tts (user_id, provider, key, model, active)
-            VALUES ($1, $2, task_manager.encrypt_api_key($3, $4), $5, $6)
-            ON CONFLICT(user_id)
-            DO UPDATE SET
-              provider = EXCLUDED.provider,
-              key = task_manager.encrypt_api_key(EXCLUDED.key, $4),
-              model = EXCLUDED.model;
-            `,
+          INSERT INTO task_manager.tts (user_id, provider, key, model, active)
+          VALUES ($1, $2, task_manager.encrypt_api_key($3, $4), $5, $6)
+          ON CONFLICT(user_id)
+          DO UPDATE SET
+            provider = EXCLUDED.provider,
+            key = EXCLUDED.key
+            model = EXCLUDED.model;
+        `,
         [userId, "cartesia", ttsKey, getEncryptionKey(), ttsModel, true]
       );
     }
@@ -349,7 +349,7 @@ export async function saveApiKeys(apiKeys: ApiKeys, userId: string) {
         VALUES ($1, $2, task_manager.encrypt_api_key($3, $4))
         ON CONFLICT(user_id)
         DO UPDATE SET
-          key = task_manager.encrypt_api_key(EXCLUDED.key, $4)
+          key = EXCLUDED.key
       `,
         [userId, "deepgram", apiKeys.deepgram, getEncryptionKey()]
       );
@@ -362,7 +362,7 @@ export async function saveApiKeys(apiKeys: ApiKeys, userId: string) {
         VALUES ($1, $2, task_manager.encrypt_api_key($3, $4))
         ON CONFLICT(user_id)
         DO UPDATE SET
-          key = task_manager.encrypt_api_key(EXCLUDED.key, $4)
+          key = EXCLUDED.key
       `,
         [userId, "openai", apiKeys.openai, getEncryptionKey()]
       );
@@ -375,7 +375,7 @@ export async function saveApiKeys(apiKeys: ApiKeys, userId: string) {
         VALUES ($1, $2, task_manager.encrypt_api_key($3, $4))
         ON CONFLICT(user_id)
         DO UPDATE SET
-          key = task_manager.encrypt_api_key(EXCLUDED.key, $4)
+          key = EXCLUDED.key
       `,
         [userId, "cartesia", apiKeys.cartesia, getEncryptionKey()]
       );
