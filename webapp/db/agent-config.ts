@@ -24,8 +24,8 @@ export async function getSelectedModels(userId: string) {
     // check if this user has entries for the particular model types
     const { rows } = await pool.query(
       `
-      SELECT stt.model AS stt_model, llm.model AS llm_model, tts.model AS tts_model
-        FROM stt FULL OUTER JOIN llm ON stt.user_id = llm.user_id FULL OUTER JOIN tts ON stt.user_id = tts.user_id 
+      SELECT stt.model AS stt_model, llm.model AS llm_model, task_manager.tts.model AS tts_model
+        FROM task_manager.stt stt FULL OUTER JOIN task_manager.llm llm ON stt.user_id = llm.user_id FULL OUTER JOIN task_manager.tts tts ON stt.user_id = tts.user_id 
       WHERE stt.user_id = $1;
     `,
       [userId]
@@ -214,8 +214,8 @@ export async function getSelectedModelsAndValidatedApiKeys(userId: string) {
              task_manager.decrypt_api_key(llm.key, $2) AS llm_key, 
              tts.model AS tts_model, 
              task_manager.decrypt_api_key(tts.key, $2) AS tts_key
-      FROM stt FULL OUTER JOIN llm ON stt.user_id = llm.user_id
-      FULL OUTER JOIN tts ON stt.user_id = tts.user_id
+      FROM task_manager.stt stt FULL OUTER JOIN task_manager.llm llm ON stt.user_id = llm.user_id
+      FULL OUTER JOIN task_manager.tts tts ON stt.user_id = tts.user_id
       WHERE stt.user_id = $1;
       `,
       [userId, getEncryptionKey()]
@@ -262,7 +262,7 @@ export async function validateCurrentApiKeys(userId: string) {
       SELECT CASE WHEN stt.key IS NOT NULL THEN 'true' ELSE 'false' END as stt_key, 
              CASE WHEN llm.key IS NOT NULL THEN 'true' ELSE 'false' END as llm_key, 
              CASE WHEN tts.key IS NOT NULL THEN 'true' ELSE 'false' END as tts_key
-        FROM stt FULL OUTER JOIN llm ON stt.user_id = llm.user_id FULL OUTER JOIN tts ON stt.user_id = tts.user_id
+        FROM task_manager.stt stt FULL OUTER JOIN task_manager.llm llm ON stt.user_id = llm.user_id FULL OUTER JOIN task_manager.tts tts ON stt.user_id = tts.user_id
       WHERE stt.user_id = $1;
     `,
       [userId]
@@ -294,8 +294,8 @@ export async function validateConfigByUserId(userId: string) {
              task_manager.decrypt_api_key(llm.key, $2) AS llm_key, 
              tts.model AS tts_model, 
              task_manager.decrypt_api_key(tts.key, $2) AS tts_key
-      FROM stt JOIN llm ON stt.user_id = llm.user_id
-      LEFT JOIN tts ON stt.user_id = tts.user_id
+      FROM task_manager.stt stt JOIN task_manager.llm llm ON stt.user_id = llm.user_id
+      LEFT JOIN task_manager.tts tts ON stt.user_id = tts.user_id
       WHERE stt.user_id = $1;
       `,
       [userId, getEncryptionKey()]
@@ -345,7 +345,7 @@ export async function saveApiKeys(apiKeys: ApiKeys, userId: string) {
     if (apiKeys.deepgram) {
       await client.query(
         `
-        INSERT INTO stt (user_id, provider, key)
+        INSERT INTO task_manager.stt (user_id, provider, key)
         VALUES ($1, $2, task_manager.encrypt_api_key($3, $4))
         ON CONFLICT(user_id)
         DO UPDATE SET
@@ -358,7 +358,7 @@ export async function saveApiKeys(apiKeys: ApiKeys, userId: string) {
     if (apiKeys.openai) {
       await client.query(
         `
-        INSERT INTO llm (user_id, provider, key)
+        INSERT INTO task_manager.llm (user_id, provider, key)
         VALUES ($1, $2, task_manager.encrypt_api_key($3, $4))
         ON CONFLICT(user_id)
         DO UPDATE SET
@@ -371,7 +371,7 @@ export async function saveApiKeys(apiKeys: ApiKeys, userId: string) {
     if (apiKeys.cartesia) {
       await client.query(
         `
-        INSERT INTO tts (user_id, provider, key)
+        INSERT INTO task_manager.tts (user_id, provider, key)
         VALUES ($1, $2, task_manager.encrypt_api_key($3, $4))
         ON CONFLICT(user_id)
         DO UPDATE SET

@@ -4,7 +4,7 @@ CREATE TABLE stt(
    id INT GENERATED ALWAYS AS IDENTITY,
    user_id UUID UNIQUE,
    provider VARCHAR(64),
-   key VARCHAR(512),
+   key VARCHAR(1024),
    model VARCHAR(255),
    constraint fk_stt
    	foreign key(user_id)
@@ -17,7 +17,7 @@ CREATE TABLE llm(
    id INT GENERATED ALWAYS AS IDENTITY,
    user_id UUID UNIQUE,
    provider VARCHAR(64),
-   key VARCHAR(512),
+   key VARCHAR(1024),
    model VARCHAR(255),
    constraint fk_llm
    	foreign key(user_id)
@@ -30,7 +30,7 @@ CREATE TABLE tts(
    id INT GENERATED ALWAYS AS IDENTITY,
    user_id UUID UNIQUE,
    provider VARCHAR(64),
-   key VARCHAR(512),
+   key VARCHAR(1024),
    model VARCHAR(255),
    active BOOL,
    constraint fk_tts

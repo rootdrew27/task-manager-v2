@@ -9,7 +9,7 @@ declare module "pg" {
 
 // Create pool with connection logging
 export const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
+  connectionString: process.env.PG_DATABASE_URL,
   ssl: {
     rejectUnauthorized: false,
   },
