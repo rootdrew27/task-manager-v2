@@ -30,7 +30,7 @@ class Logger {
   private isDevelopment: boolean;
 
   constructor() {
-    this.logDir = path.join(process.cwd(), "logs");
+    this.logDir = "/tmp/webapp/logs";
     this.isDevelopment = process.env.NODE_ENV === "development";
     this.ensureLogDirectory();
   }

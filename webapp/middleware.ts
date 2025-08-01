@@ -47,8 +47,23 @@ export default auth(async (req) => {
           },
         });
 
+        const contentType = res2.headers.get("content-type");
+
         if (!res2.ok) {
-          const data = await res2.json();
+          let data;
+
+          // Check if response has JSON content type and attempt to parse
+          if (contentType && contentType.includes("application/json")) {
+            try {
+              data = await res2.json();
+            } catch (error) {
+              // If JSON parsing fails, continue without data
+              data = {};
+            }
+          } else {
+            data = {};
+          }
+
           // Handle rate limiting specifically
           if (res2.status === 429) {
             let retryAfter;
@@ -73,7 +88,19 @@ export default auth(async (req) => {
           throw new Error(`Guest API failed with status ${res2.status}.`);
         }
 
-        const data = await res2.json();
+        let data;
+
+        // Check if response has JSON content type and attempt to parse
+        if (contentType && contentType.includes("application/json")) {
+          try {
+            data = await res2.json();
+          } catch (error) {
+            throw new Error("Failed to parse guest API response as JSON");
+          }
+        } else {
+          throw new Error("Guest API response is not JSON");
+        }
+
         if (!data.guestId || typeof data.guestId !== "string") {
           throw new Error("Invalid guest ID response");
         }
