@@ -23,12 +23,10 @@ let redis: Redis | null = null;
 function getRedisClient(): Redis {
   if (!redis) {
     const redisUrl = process.env.REDIS_URL || "redis://localhost";
-    const redisPort = parseInt(process.env.REDIS_PORT || "6379", 10);
 
-    redis = new Redis(redisPort, redisUrl, {
-      enableReadyCheck: false,
+    redis = new Redis(redisUrl, {
       maxRetriesPerRequest: 3,
-      lazyConnect: true,
+      lazyConnect: false,
     });
   }
   return redis;
