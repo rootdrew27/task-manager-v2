@@ -24,12 +24,8 @@ function getRedisClient(): Redis {
   if (!redis) {
     const redisUrl = process.env.REDIS_URL || "redis://localhost";
     const redisPort = parseInt(process.env.REDIS_PORT || "6379", 10);
-    const redisUsername = process.env.REDIS_USERNAME;
-    const redisPassword = process.env.REDIS_PASSWORD;
 
     redis = new Redis(redisPort, redisUrl, {
-      username: redisUsername,
-      password: redisPassword,
       enableReadyCheck: false,
       maxRetriesPerRequest: 3,
       lazyConnect: true,
